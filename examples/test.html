@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Tonejs in NAframe</title>
+    <meta name="description" content="Networked Aframe + Tone.js">
+    <link rel="shortcut icon" href="/img/icon.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.4.0/socket.io.slim.js"></script>
+    <script src="/easyrtc/easyrtc.js"></script>
+    <script src="/dist/networked-aframe.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+    <script src="https://unpkg.com/tone"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://rawgit.com/rdub80/aframe-gui/master/dist/aframe-gui.min.js"></script>
+    <script src="/js/spawn-in-circle.component.js"></script>
+    <script src="/js/musicComponents.js"></script>
+    <script src="/js/messageManager.js"></script>
+    <script src="/js/positionManager.js"></script>
+    <script src="/js/handTrackerManager.js"></script>
+    <script src="/js/persistent-p2p.component.js"></script>
+    <script>
+        // see issue https://github.com/networked-aframe/networked-aframe/issues/267
+
+        NAF.schemas.getComponents = (template) => {
+            if (!NAF.schemas.hasTemplate("#avatar-template")) {
+                NAF.schemas.add({
+                    template: '#avatar-template',
+                    components: [
+                        'position',
+                        'rotation',
+                        {
+                            selector: '.head',
+                            component: 'material',
+                            property: 'color'
+                        }
+                    ]
+                });
+            }
+            if (!NAF.schemas.hasTemplate("#cube-template")) {
+                NAF.schemas.add({
+                    template: '#cube-template',
+                    components: [
+                        "position",
+                    ]
+                });
+            }
+            const components = NAF.schemas.getComponentsOriginal(template);
+            return components;
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <a-scene persistent-p2p networked-scene="
+                          room: persistent-peer-to-peer; 
+                          debug: true; 
+                          audio: true; 
+                          adapter: easyrtc;
+                          ">
+        
+        <!-- Templates -->
+        <a-assets>
+
+            <!--  Background Template  -->
+            <img id="groundTexture" src="https://cdn.aframe.io/a-painter/images/floor.jpg" crossorigin="anonymous">
+            <img id="skyTexture" src="https://cdn.aframe.io/a-painter/images/sky.jpg" crossorigin="anonymous">
+
+
+            <!-- Avatar Template  -->
+            <template id="avatar-template">
+                <a-entity class="avatar" networked-audio-source>
+                    <a-sphere class="head" scale="0.45 0.5 0.4"></a-sphere>
+                    <a-entity class="face" position="0 0.05 0">
+                        <a-sphere class="eye" color="#efefef" position="0.16 0.1 -0.35" scale="0.12 0.12 0.12">
+                            <a-sphere class="pupil" color="#000" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+                        </a-sphere>
+                        <a-sphere class="eye" color="#efefef" position="-0.16 0.1 -0.35" scale="0.12 0.12 0.12">
+                            <a-sphere class="pupil" color="#000" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+                        </a-sphere>
+                    </a-entity>
+                </a-entity>
+            </template>
+
+            <!--  Cube Template  -->
+            <template id="cube-template">
+                <a-entity geometry="primitive: box; height: 1; depth: 1; width: 1"
+                    material="shader: flat; color: purple" index polysynth></a-entity>
+            </template>
+
+            <!-- Text Template  -->
+            <template id="note-text">
+                <a-text value="testo"></a-text>
+            </template>
+
+            <!--  Note Selectors Template  -->
+            <a-asset-item id="left-hand-model" src="./assets/leftHandHigh.glb"></a-asset-item>
+            <a-asset-item id="right-hand-model" src="./assets/rightHandHigh.glb"></a-asset-item>
+            <a-asset-item id="plus-obj" src="./assets/plus.obj"></a-asset-item>
+            <a-asset-item id="a-obj" src="./assets/a.glb"></a-asset-item>
+            <a-asset-item id="b-obj" src="./assets/b.glb"></a-asset-item>
+            <a-asset-item id="c-obj" src="./assets/c.glb"></a-asset-item>
+            <a-asset-item id="d-obj" src="./assets/d.glb"></a-asset-item>
+            <a-asset-item id="e-obj" src="./assets/e.glb"></a-asset-item>
+            <a-asset-item id="f-obj" src="./assets/f.glb"></a-asset-item>
+            <a-asset-item id="g-obj" src="./assets/g.glb"></a-asset-item>
+
+
+            <!-- Hands -->
+            <template id="left-hand-template">
+                <a-entity>
+                    <a-gltf-model class="tracked-left-hand" rotation="0 0 90" src="#left-hand-model"></a-gltf-model>
+                </a-entity>
+            </template>
+
+            <template id="right-hand-template">
+                <a-entity>
+                    <a-gltf-model class="tracked-right-hand" rotation="0 0 -90" src="#right-hand-model"></a-gltf-model>
+                </a-entity>
+            </template>
+
+
+        </a-assets>
+
+        <!--  User + Camera  -->
+        <a-entity id="player" networked="template: #avatar-template; attachTemplateToLocal: false;" camera
+            position="0 1.6 0" spawn-in-circle="radius:3" wasd-controls look-controls position-listener
+            tracked-vr-hands>
+            <a-cursor intersection-spawn="event: click; template: #cube-template; template2: #note-text"></a-cursor>
+            <a-sphere class="head" visible="false" random-color></a-sphere>
+        </a-entity>
+
+
+        <!--  Background  -->
+        <a-cylinder id="ground" src="#groundTexture" radius="30" height="0.1"></a-cylinder>
+        <a-sky id="background" src="#skyTexture" theta-length="90" radius="30"></a-sky>
+        <a-entity light="type: ambient; color: #CCC"></a-entity>
+
+
+        <!-- Note Selectors -->
+        <a-entity gltf-model="#a-obj" scale="0.5 0.5 0.5" position="-12 1 -3" note-mem="addnota: A"></a-entity>
+        <a-entity gltf-model="#b-obj" scale="0.5 0.5 0.5" position="-10 1 -3" note-mem="addnota: B"></a-entity>
+        <a-entity gltf-model="#c-obj" scale="0.5 0.5 0.5" position="-8 1 -3" note-mem="addnota: C"></a-entity>
+        <a-entity gltf-model="#d-obj" scale="0.5 0.5 0.5" position="-6 1 -3" note-mem="addnota: D"></a-entity>
+        <a-entity gltf-model="#e-obj" scale="0.5 0.5 0.5" position="-4 1 -3" note-mem="addnota: E"></a-entity>
+        <a-entity gltf-model="#f-obj" scale="0.5 0.5 0.5" position="-2 1 -3" note-mem="addnota: F"></a-entity>
+        <a-entity gltf-model="#g-obj" scale="0.5 0.5 0.5" position="0 1 -3" note-mem="addnota: G"></a-entity>
+
+
+        <!--  Octave Changer  -->
+        <a-entity material="color: red" geometry="primitive: box" position="3 1 -3" scale="1 0.5 1"
+            change-octave="action: sub"></a-entity>
+        <a-entity obj-model="obj: #plus-obj" position="6 1 -3" rotation="90 0 0" scale="0.3 0.3 0.3"
+            change-octave="action: add"></a-entity>
+
+        <!--  Internal GUI  -->
+        <a-entity id="gui" position="-14 1 -3">
+
+            <a-box id="gui-background" depth="0.1" height="4" width="2" color="#0055b3"></a-box><!-- slim plane  -->
+            <a-text id="gui-title" position="-0.9 1.5 0.1" color="#7f7f7f" value="Personal GUI"></a-text>
+
+            <!--  Line 1  -->
+            <a-entity>
+                <a-text id="gui-volume" position="-0.9 1 0.1" color="#7f7f7f" value="volume"></a-text> <!-- label1  -->
+                <a-box id="gui-addvolume" position="0.2 1 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" ></a-box><!--  button to press to increase label1 by 1  -->
+                <a-box id="gui-subvolume" position="0.7 1 0.1" color="#F00" depth="0.2" height="0.3" width="0.3"></a-box><!--  button to press to decrease label1 by 1  -->
+            </a-entity>
+
+            <!--  Line 2  -->
+            <a-entity>
+            </a-entity>
+
+        </a-entity>
+
+    </a-scene>
+
+
+    <!--  External GUI  -->
+    <form style="position: absolute; top: 5px; border: 0; right: 5px;">
+        <label id="valoreottava" style="color: white;">Ottava selezionata: 4</label>
+        <br>
+        <input id="notebox" autocomplete="off" disabled type="text"
+            style="width: 200px; background: lightgray; color: black;">
+    </form>
+
+
+</body>
+
+</html>
