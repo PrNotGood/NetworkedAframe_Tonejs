@@ -161,16 +161,18 @@
             change-octave="action: add"></a-entity>
 
         <!--  Internal GUI  -->
+        <!--  Valori da modificare: volume, i valore dell'envelope (per il momento basta direi)  -->
+        <!--  Volendo non ci dovrebbe voler molto a farla condivisa, basta aggiungere dei messaggi con comandi e siamo apposto, ma vediamo  -->
         <a-entity id="gui" position="-14 1 -3">
 
-            <a-box id="gui-background" depth="0.1" height="4" width="2" color="#0055b3"></a-box><!-- slim plane  -->
+            <a-box id="gui-background" depth="0.1" height="4" width="2" color="#0055b3"></a-box>
             <a-text id="gui-title" position="-0.9 1.5 0.1" color="#7f7f7f" value="Personal GUI"></a-text>
 
             <!--  Line 1  -->
             <a-entity>
-                <a-text id="gui-volume" position="-0.9 1 0.1" color="#7f7f7f" value="volume"></a-text> <!-- label1  -->
-                <a-box id="gui-addvolume" position="0.2 1 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" ></a-box><!--  button to press to increase label1 by 1  -->
-                <a-box id="gui-subvolume" position="0.7 1 0.1" color="#F00" depth="0.2" height="0.3" width="0.3"></a-box><!--  button to press to decrease label1 by 1  -->
+                <a-text id="gui-volume" position="-0.9 1 0.1" color="#7f7f7f" value="volume"></a-text> 
+                <a-box id="gui-addvolume" position="0.2 1 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-volume="action: add"></a-box>
+                <a-box id="gui-subvolume" position="0.7 1 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-volume="action: sub"></a-box>
             </a-entity>
 
             <!--  Line 2  -->

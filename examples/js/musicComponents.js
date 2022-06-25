@@ -28,7 +28,8 @@ externalDrop = [];
 /*  Indica l'ottava in cui si trovano i componenti da prendere, quindi se è 1, tutti i componenti hanno note in prima ottava etc  */
 octave = 4;
 
-changeOctave = new Event("changeOctave");
+/*  Volume del suono riprodotto dai cubi in dB  */
+cubeVolume = -12;
 
 
 //OUTDATED, usato per i gli oggetti statici
@@ -77,13 +78,6 @@ AFRAME.registerComponent('intersection-spawn', {
                 document.getElementById("notebox").value = "";
 
             }
-            else if(evt.detail.intersection.object.el.id == "gui-addvolume"){
-                //aumento il volume
-            }
-            else if(evt.detail.intersection.object.el.id == "gui-subvolume"){
-                //diminuisco il volume
-            }
-
         });
     }
 });
@@ -197,18 +191,13 @@ AFRAME.registerComponent("polysynth", {
             }
         }).connect(this.pannerpolysynth); 
 
+        // Imposta il volume iniziale del suono riprodotto
+        this.polysynth.volume.value = cubeVolume;
 
-        
-        // Riduce un po' il volume
-        this.polysynth.volume.value = -12;
 
         this.data.note = notePopuling();
-        //this.polysynth.triggerAttackRelease(this.data.note, "2n");
-
-
     },
     tick: function () {
-        //farlo solo una volta, ma con un controllo smette di funzionare
         this.pannerpolysynth.setPosition(this.el.object3D.position.x, this.el.object3D.position.y, this.el.object3D.position.z);
     },
     events: {
@@ -219,7 +208,6 @@ AFRAME.registerComponent("polysynth", {
             }
             if (arrayMusicale[this.objPos]) {
                 arrayMusicale[this.objPos] = 0;
-                //this.polysynth.triggerRelease(this.data.note, now);
                 this.polysynth.triggerRelease(this.data.note);
 
                 //Invio messaggio disattivazione
@@ -229,7 +217,6 @@ AFRAME.registerComponent("polysynth", {
             }
             else {
                 arrayMusicale[this.objPos] = 1;
-                //this.polysynth.triggerAttack(this.data.note, now, 1);
                 this.polysynth.triggerAttack(this.data.note);
 
                 //Invio messaggio attivazione
@@ -248,6 +235,9 @@ AFRAME.registerComponent("polysynth", {
             //this.polysynth.triggerRelease(this.data.note, now);
             this.polysynth.triggerRelease(this.data.note);
         },
+        volumeChange: function(){
+            this.polysynth.volume.value = cubeVolume;
+        }
     }
 });
 
@@ -304,8 +294,6 @@ AFRAME.registerComponent("pannerosc", {
     },
 
     init: function () {
-
-
         let physicalObj = this.el.object3D;
         let pannerosc = new Tone.Panner3D(physicalObj.position.x, physicalObj.position.y, physicalObj.position.z).toDestination();
         let osc = new Tone.Oscillator(220, "sine").connect(pannerosc);
@@ -427,4 +415,34 @@ AFRAME.registerComponent('change-octave', {
         }
     }
 });
+
+AFRAME.registerComponent('change-volume', {
+    schema: {
+        action: { type: 'string' }
+    },
+
+    events: {
+        click: function(){
+            var cmd = 'volume:';
+            if(this.data.action == 'add'){
+                cubeVolume++;
+            }
+            else if(this.data.action == 'sub'){
+                cubeVolume--;
+            }
+
+            cmd += cubeVolume;
+
+            var cubes = document.querySelectorAll('[polysynth]');
+            for(var i = 0; i < cubes.length; i++){
+                cubes[i].dispatchEvent(volumeChange);
+            }
+
+            NAF.connection.broadcastDataGuaranteed('settings-commands', cmd);
+        }
+
+        
+    }
+});
+
 

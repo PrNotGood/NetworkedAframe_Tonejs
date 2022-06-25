@@ -1,31 +1,42 @@
-/*  Eventi per attivazione oggetti Musicali  */
-/*  Necessari in quanto triggerare il click sul component genererebbe comunque bubbling  */
-/*  E si andrebbe incontro ad un loop di messaggi inviati  */
-/*  Probabile che mi basti un evento per accendere e uno per spegnere se riesco a implementare  */
-/*  L'implementazione del vettore per gestire tutti i cubi  */
-/*  OUTDATED, usati per gli elementi statici  */
-eventOnSynth = new Event('eventOnSynth');
-eventOffSynth = new Event('eventOffSynth');
-eventOnOsc = new Event('eventOnOsc');
-eventOffOsc = new Event('eventOffOsc');
-
+{/*  Eventi per attivazione oggetti Musicali  */
+    /*  Necessari in quanto triggerare il click sul component genererebbe comunque bubbling  */
+    /*  E si andrebbe incontro ad un loop di messaggi inviati  */
+    /*  Probabile che mi basti un evento per accendere e uno per spegnere se riesco a implementare  */
+    /*  L'implementazione del vettore per gestire tutti i cubi  */
+    /*  OUTDATED, usati per gli elementi statici  */
+    eventOnSynth = new Event('eventOnSynth');
+    eventOffSynth = new Event('eventOffSynth');
+    eventOnOsc = new Event('eventOnOsc');
+    eventOffOsc = new Event('eventOffOsc');
+}
 
 
 /*  Eventi per elementi creati dinamicamente  */
 eventOn = new Event('eventOn');
 eventOff = new Event('eventOff');
+volumeChange = new Event('volumeChange');
+changeOctave = new Event("changeOctave");
+updateEnvelope = new Event('updateEnvelope');
+
 
 
 //Incrementa l'index quando un'entità viene creata, ci saranno degli spazi vuoti dovuti a quando un utente si connette (viene generato l'avatar,
 //ma non influiscono sul funzionamento)
-function onConnect(){
+function onConnect() {
 
     document.body.addEventListener('entityCreated', function (evt) {
-        if(evt.detail.el.getAttribute('index').indice != undefined)
-            index++;
+        if (evt.detail.el.getAttribute('index') != null)
+            if (evt.detail.el.getAttribute('index').indice != undefined)
+                index++;
     });
 
     NAF.connection.subscribeToDataChannel("arraynote", createArray);
+    NAF.connection.subscribeToDataChannel("setting-commands", updateSettings);
+    NAF.connection.subscribeToDataChannel('cube-commands', cubeManager);
+    NAF.connection.subscribeToDataChannel('note-received', function (senderId, dataType, data, targetId) {
+        externalDrop = data;
+    });
+
 
     document.body.addEventListener('clientConnected', function (evt) {
         //console.error('clientConnected event. clientId =', evt.detail.clientId);
@@ -33,42 +44,20 @@ function onConnect(){
         var arrayNote = [];
 
         //empty spaces = undefined in teoria
-        for(var i = 0; i < cubes.length; i++){
+        for (var i = 0; i < cubes.length; i++) {
             var index = cubes[i].getAttribute('index').indice;
             arrayNote[index] = cubes[i].getAttribute('polysynth').note;
         }
 
         //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote); 
+
+        //messaggi inviati ai client appena connessi
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "volume:" + cubeVolume);
     });
 
 }
 
-NAF.connection.subscribeToDataChannel('note-received', function (senderId, dataType, data, targetId) { 
-    externalDrop = data;
-});
-
-/*  Metodo per la comunicazione attivazione e disattivazione cubi creati dinamicamente */
-NAF.connection.subscribeToDataChannel('cube-commands', function(senderId, dataType, data, targetId){
-    var cmd = data.split('-'); // command-index es: 1-on, 23-off
-    var ind = cmd[0];
-    var acc = cmd[1];
-    var cubes = document.querySelectorAll('[index]');
-
-    //console.log(data);
-    for (var i = 0; i < cubes.length; i++) {
-        if(cubes[i].getAttribute('index').indice == ind){
-            if(acc == 'on'){
-                console.log('accensione');
-                cubes[i].dispatchEvent(eventOn);
-            }
-            else if(acc == 'off'){
-                console.log('spegnimento');
-                cubes[i].dispatchEvent(eventOff);
-            }
-        }
-      }
-});
 
 // Listener OUTDATED, per elementi statici
 NAF.connection.subscribeToDataChannel('sentmsg', function (senderId, dataType, data, targetId) {
@@ -94,6 +83,7 @@ NAF.connection.subscribeToDataChannel('sentmsg', function (senderId, dataType, d
         default: break;
     }
 });
+
 
 // Broadcaster che invia messaggi dopo la ricezione di un click OUTDATED, per elementi statici
 AFRAME.registerComponent("msgsender", {
@@ -154,14 +144,14 @@ AFRAME.registerComponent("msgsender", {
     }
 }*/
 
-function createArray(senderId, dataType, data, targetObj){
+function createArray(senderId, dataType, data, targetObj) {
     //funzione che assegna ad ogni cubo il suo valore ATTENTO CHE MAGARI GLI INDICI NON SONO IN ORDINE
     //es arrayNote [["D1","C2"],["B2","C3"], null,
 
     console.log(data);
-    
+
     var cubes = document.querySelectorAll('[polysynth]');
-    for(var i = 0; i < data.length; i++){
+    for (var i = 0; i < data.length; i++) {
         var index = cubes[i].getAttribute('index').indice;
 
         //cubes[i].object3D.setAttribute("polysynth", {note: data[index]});
@@ -169,5 +159,53 @@ function createArray(senderId, dataType, data, targetObj){
         console.log(cubes[i].getAttribute('polysynth').note);
 
         cubes[i].setAttribute('polysynth', 'note', data[index]);
+    }
+}
+
+function updateSettings(senderId, dataType, data, targetObj) {
+
+    var cmd = data.split(':');
+    var settingIndex = cmd[0];
+    var modifier = cmd[1];
+    var cubes = document.querySelectorAll('[polysynth]');
+
+    switch (settingIndex) {
+        case 'volume': {
+            cubeVolume = modifier;
+            console.log('Volume: ' + cubeVolume);
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(volumeChange);
+                }
+            }
+            break;
+        }
+        default: {
+            console.error("Errore: " + cmd + ", comando non identificato correttamente");
+            break;
+        }
+    }
+
+
+}
+
+function cubeManager(senderId, dataType, data, targetObj) {
+    var cmd = data.split('-'); // command-index es: 1-on, 23-off
+    var ind = cmd[0];
+    var acc = cmd[1];
+    var cubes = document.querySelectorAll('[index]');
+
+    //console.log(data);
+    for (var i = 0; i < cubes.length; i++) {
+        if (cubes[i].getAttribute('index').indice == ind) {
+            if (acc == 'on') {
+                //console.log('accensione');
+                cubes[i].dispatchEvent(eventOn);
+            }
+            else if (acc == 'off') {
+                //console.log('spegnimento');
+                cubes[i].dispatchEvent(eventOff);
+            }
+        }
     }
 }
