@@ -31,6 +31,13 @@ octave = 4;
 /*  Volume del suono riprodotto dai cubi in dB  */
 cubeVolume = -12;
 
+/*  detune applicato al suono riprodotto dai cubi  */
+cubeDetune = 0;
+
+cubeEnvelopeAttack = 3;
+cubeEnvelopeDecay = 2;
+cubeEnvelopeRelease = 0.5;
+cubeEnvelopeSustain = 0.5;
 
 //OUTDATED, usato per i gli oggetti statici
 riproducisynth = 0;
@@ -184,16 +191,17 @@ AFRAME.registerComponent("polysynth", {
         this.polysynth = new Tone.PolySynth().set({
             envelope: {
                 attackCurve: "exponential",
-                attack: 3,
-                decay: 2,
-                sustain: 0.5,
-                release: 10,
+                attack: cubeEnvelopeAttack,
+                decay: cubeEnvelopeDecay,
+                sustain: cubeEnvelopeSustain,
+                release: cubeEnvelopeRelease,
             }
-        }).connect(this.pannerpolysynth); 
+        }).connect(this.pannerpolysynth);
 
         // Imposta il volume iniziale del suono riprodotto
         this.polysynth.volume.value = cubeVolume;
 
+        this.polysynth.set({ detune: cubeDetune });
 
         this.data.note = notePopuling();
     },
@@ -228,15 +236,32 @@ AFRAME.registerComponent("polysynth", {
         eventOn: function () {
             arrayMusicale[this.objPos] = 1;
             //this.polysynth.triggerAttack(this.data.note, now, 1); //scambiare now con "+0" se qualcosa non dovesse andare
-            this.polysynth.triggerAttack(this.data.note); 
+            this.polysynth.triggerAttack(this.data.note);
         },
         eventOff: function () {
             arrayMusicale[this.objPos] = 0;
             //this.polysynth.triggerRelease(this.data.note, now);
             this.polysynth.triggerRelease(this.data.note);
         },
-        volumeChange: function(){
+        volumeChange: function () {
             this.polysynth.volume.value = cubeVolume;
+        },
+        detuneChange: function () {
+            this.polysynth.set({ detune: cubeDetune });
+
+        },
+        updateEnvelope: function () {
+
+
+            this.polysynth.set({
+                envelope: {
+                    attackCurve: "exponential",
+                    attack: cubeEnvelopeAttack,
+                    decay: cubeEnvelopeDecay,
+                    sustain: cubeEnvelopeSustain,
+                    release: cubeEnvelopeRelease,
+                }
+            });
         }
     }
 });
@@ -422,27 +447,167 @@ AFRAME.registerComponent('change-volume', {
     },
 
     events: {
-        click: function(){
+        click: function () {
             var cmd = 'volume:';
-            if(this.data.action == 'add'){
+            if (this.data.action == 'add') {
                 cubeVolume++;
             }
-            else if(this.data.action == 'sub'){
+            else if (this.data.action == 'sub') {
                 cubeVolume--;
             }
 
             cmd += cubeVolume;
 
+            document.getElementById("volume-value").setAttribute('value', cubeVolume);
+
             var cubes = document.querySelectorAll('[polysynth]');
-            for(var i = 0; i < cubes.length; i++){
+            for (var i = 0; i < cubes.length; i++) {
                 cubes[i].dispatchEvent(volumeChange);
             }
 
-            NAF.connection.broadcastDataGuaranteed('settings-commands', cmd);
+            NAF.connection.broadcastDataGuaranteed('setting-commands', cmd);
         }
 
-        
+
+    }
+});
+
+AFRAME.registerComponent('change-detune', {
+    schema: {
+        action: { type: 'string' }
+    },
+
+    events: {
+        click: function () {
+            var cmd = 'detune:';
+            if (this.data.action == 'add') {
+                cubeDetune += 100;
+            }
+            else if (this.data.action == 'sub') {
+                cubeDetune -= 100;
+            }
+
+            cmd += cubeDetune;
+
+            document.getElementById("detune-value").setAttribute('value', cubeDetune);
+
+            var cubes = document.querySelectorAll('[polysynth]');
+            for (var i = 0; i < cubes.length; i++) {
+                cubes[i].dispatchEvent(updateEnvelope);
+            }
+
+            NAF.connection.broadcastDataGuaranteed('setting-commands', cmd);
+        }
+
+
     }
 });
 
 
+//a caso aggiunge 0.5 al testo lmao
+AFRAME.registerComponent('change-envelope', {
+    schema: {
+        argument: { type: 'string' },
+        action: { type: 'string' }
+    },
+
+    events: {
+        click: function () {
+
+            var cmd = '';
+
+
+
+            switch (this.data.argument) {
+                case 'envelope-attack': {
+
+                    cmd = 'envelope-attack:';
+
+                    if (this.data.action == 'add') {
+                        cubeEnvelopeAttack += 0.5;
+                    }
+                    else if (this.data.action == 'sub') {
+                        if (cubeEnvelopeAttack > 0)
+                            cubeEnvelopeAttack -= 0.5;
+                    }
+
+                    cmd += cubeEnvelopeAttack;
+
+                    document.getElementById("attack-value").setAttribute('value', cubeEnvelopeAttack);
+
+
+                    break;
+                }
+                case 'envelope-decay': {
+
+                    cmd = 'envelope-decay:';
+
+                    if (this.data.action == 'add') {
+                        cubeEnvelopeDecay += 0.5;
+                    }
+                    else if (this.data.action == 'sub') {
+                        if (cubeEnvelopeDecay > 0)
+                            cubeEnvelopeDecay -= 0.5;
+                    }
+
+                    cmd += cubeEnvelopeDecay;
+
+                    document.getElementById("decay-value").setAttribute('value', cubeEnvelopeDecay);
+
+                    break;
+                }
+
+                case 'envelope-sustain': {
+
+                    cmd = 'envelope-sustain:';
+
+                    if (this.data.action == 'add') {
+
+                        cubeEnvelopeSustain += 0.1;
+                        if (cubeEnvelopeSustain > 1) cubeEnvelopeSustain = 1;
+                    }
+                    else if (this.data.action == 'sub') {
+                        cubeEnvelopeSustain -= 0.1;
+                        if (cubeEnvelopeSustain < 0) cubeEnvelopeSustain = 0;
+
+                    }
+
+                    cmd += cubeEnvelopeSustain;
+
+                    document.getElementById("sustain-value").setAttribute('value', cubeEnvelopeSustain.toFixed(1));
+
+                    break;
+                }
+                case 'envelope-release': {
+
+                    cmd = 'envelope-release:';
+
+                    if (this.data.action == 'add') {
+                        cubeEnvelopeRelease += 0.5;
+                    }
+                    else if (this.data.action == 'sub') {
+                        if (cubeEnvelopeRelease > 0)
+                            cubeEnvelopeRelease -= 0.5;
+                    }
+
+                    cmd += cubeEnvelopeRelease;
+
+                    document.getElementById("release-value").setAttribute('value', cubeEnvelopeRelease);
+
+                    break;
+                }
+                default: {
+                    console.error("Input Erratto: " + this.data.argument + ": " + this.data.action);
+                    break;
+                }
+            }
+
+            var cubes = document.querySelectorAll('[polysynth]');
+            for (var i = 0; i < cubes.length; i++) {
+                cubes[i].dispatchEvent(updateEnvelope);
+            }
+
+            NAF.connection.broadcastDataGuaranteed('setting-commands', cmd);
+        }
+    }
+});

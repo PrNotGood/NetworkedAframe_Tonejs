@@ -15,6 +15,7 @@
 eventOn = new Event('eventOn');
 eventOff = new Event('eventOff');
 volumeChange = new Event('volumeChange');
+detuneChange = new Event('detuneChange');
 changeOctave = new Event("changeOctave");
 updateEnvelope = new Event('updateEnvelope');
 
@@ -30,12 +31,17 @@ function onConnect() {
                 index++;
     });
 
+    document.getElementById("volume-value").setAttribute('value', cubeVolume);
+    document.getElementById("detune-value").setAttribute('value', cubeDetune);
+    document.getElementById("attack-value").setAttribute('value', cubeEnvelopeAttack);
+    document.getElementById("decay-value").setAttribute('value', cubeEnvelopeDecay);
+    document.getElementById("sustain-value").setAttribute('value', cubeEnvelopeRelease);
+    document.getElementById("release-value").setAttribute('value', cubeEnvelopeSustain);
+
     NAF.connection.subscribeToDataChannel("arraynote", createArray);
     NAF.connection.subscribeToDataChannel("setting-commands", updateSettings);
     NAF.connection.subscribeToDataChannel('cube-commands', cubeManager);
-    NAF.connection.subscribeToDataChannel('note-received', function (senderId, dataType, data, targetId) {
-        externalDrop = data;
-    });
+    NAF.connection.subscribeToDataChannel('note-received', noteSet);
 
 
     document.body.addEventListener('clientConnected', function (evt) {
@@ -54,6 +60,11 @@ function onConnect() {
         //messaggi inviati ai client appena connessi
         NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
         NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "volume:" + cubeVolume);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "detune:" + cubeDetune);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-attack:" + cubeEnvelopeAttack);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-decay:" + cubeEnvelopeDecay);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-sustain:" + cubeEnvelopeSustain);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-release:" + cubeEnvelopeRelease);
     });
 
 }
@@ -124,25 +135,6 @@ AFRAME.registerComponent("msgsender", {
 });
 
 
-/*function cbFunction(senderId, dataType, data, targetObj){
-    //quando un nuovo utente si connette, invia un messaggio "request", questo è ciò che fanno coloro che lo ricevono
-    //costruiscono un array con all'interno i valori delle note dei cubi e poi lo inviano
-    if(data == "request"){
-        var cubes = document.querySelectorAll('[polysynth]');
-        var arrayNote = [];
-
-        //empty spaces = undefined in teoria
-        for(var i = 0; i < cubes.length; i++){
-            var index = cubes[i].getAttribute('index').indice;
-            arrayNote[index] = cubes[i].getAttribute('polysynth').note;
-        }
-        //console.log("ArrayNote: ");
-        console.log(senderId);
-        var destinatario = senderId;
-        //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
-        NAF.connection.sendDataGuaranteed(senderId, "arraynote", arrayNote); 
-    }
-}*/
 
 function createArray(senderId, dataType, data, targetObj) {
     //funzione che assegna ad ogni cubo il suo valore ATTENTO CHE MAGARI GLI INDICI NON SONO IN ORDINE
@@ -166,24 +158,86 @@ function updateSettings(senderId, dataType, data, targetObj) {
 
     var cmd = data.split(':');
     var settingIndex = cmd[0];
-    var modifier = cmd[1];
+    var modifier = parseFloat(cmd[1]);
     var cubes = document.querySelectorAll('[polysynth]');
 
     switch (settingIndex) {
         case 'volume': {
             cubeVolume = modifier;
-            console.log('Volume: ' + cubeVolume);
             if (cubes != null) {
                 for (var i = 0; i < cubes.length; i++) {
                     cubes[i].dispatchEvent(volumeChange);
                 }
             }
+
+            document.getElementById("volume-value").setAttribute('value', cubeVolume);
+
             break;
         }
-        default: {
+        case 'detune': {
+            cubeDetune = modifier;
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(detuneChange);
+                }
+            }
+
+            document.getElementById("detune-value").setAttribute('value', cubeDetune);
+
+            break;
+        }
+        case 'envelope-attack': {
+            cubeEnvelopeAttack = modifier;
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(updateEnvelope);
+                }
+            }
+
+            document.getElementById("attack-value").setAttribute('value', cubeEnvelopeAttack);
+
+            break;
+        }
+        case 'envelope-decay': {
+            cubeEnvelopeDecay = modifier;
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(updateEnvelope);
+                }
+            }
+
+            document.getElementById("decay-value").setAttribute('value', cubeEnvelopeDecay);
+
+            break;
+        }
+        case 'envelope-sustain': {
+            cubeEnvelopeSustain = modifier;
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(updateEnvelope);
+                }
+            }
+
+            document.getElementById("sustain-value").setAttribute('value', cubeEnvelopeSustain);
+
+            break;
+        }
+        case 'envelope-release': {
+            cubeEnvelopeRelease = modifier;
+            if (cubes != null) {
+                for (var i = 0; i < cubes.length; i++) {
+                    cubes[i].dispatchEvent(updateEnvelope);
+                }
+            }
+
+            document.getElementById("release-value").setAttribute('value', cubeEnvelopeRelease);
+
+            break;
+        }
+        default:
             console.error("Errore: " + cmd + ", comando non identificato correttamente");
             break;
-        }
+
     }
 
 
@@ -208,4 +262,8 @@ function cubeManager(senderId, dataType, data, targetObj) {
             }
         }
     }
+}
+
+function noteSet(senderId, dataType, data, targetObj){
+    externalDrop = data;
 }

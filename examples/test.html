@@ -163,21 +163,58 @@
         <!--  Internal GUI  -->
         <!--  Valori da modificare: volume, i valore dell'envelope (per il momento basta direi)  -->
         <!--  Volendo non ci dovrebbe voler molto a farla condivisa, basta aggiungere dei messaggi con comandi e siamo apposto, ma vediamo  -->
-        <a-entity id="gui" position="-14 1 -3">
+        <a-entity id="gui" position="-16 1.5 -3">
 
-            <a-box id="gui-background" depth="0.1" height="4" width="2" color="#0055b3"></a-box>
-            <a-text id="gui-title" position="-0.9 1.5 0.1" color="#7f7f7f" value="Personal GUI"></a-text>
+            <a-box id="gui-background" depth="0.1" height="6" width="3" color="#0055b3"></a-box>
+            <a-text id="gui-title" position="-1.3 2.7 0.1" color="#7f7f7f" value="Common GUI"></a-text>
 
             <!--  Line 1  -->
             <a-entity>
-                <a-text id="gui-volume" position="-0.9 1 0.1" color="#7f7f7f" value="volume"></a-text> 
-                <a-box id="gui-addvolume" position="0.2 1 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-volume="action: add"></a-box>
-                <a-box id="gui-subvolume" position="0.7 1 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-volume="action: sub"></a-box>
+                <a-text id="gui-volume" position="-1 2.2 0.1" color="#7f7f7f" value="Volume"></a-text> 
+                <a-box id="gui-addvolume" position="0 2.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-volume="action: add"></a-box>
+                <a-box id="gui-subvolume" position="0.4 2.2 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-volume="action: sub"></a-box>
+                <a-text id="volume-value" position="0.7 2.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
             </a-entity>
 
             <!--  Line 2  -->
             <a-entity>
+                <a-text id="gui-detune" position="-1 1.7 0.1" color="#7f7f7f" value="Detune"></a-text> 
+                <a-box id="gui-adddetune" position="0 1.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-detune="action: add"></a-box>
+                <a-box id="gui-subdetune" position="0.4 1.7 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-detune="action: sub"></a-box>
+                <a-text id="detune-value" position="0.7 1.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
             </a-entity>
+
+            <a-text id="gui-envelope" position="-1.3 1.2 0.1" color="#7f7f7f" value="Envelope GUI"></a-text>
+
+
+            <a-entity>
+                <a-text id="gui-envelopeattack" position="-1 0.7 0.1" color="#7f7f7f" value="Attack"></a-text> 
+                <a-box id="gui-addenvelopeattack" position="0 0.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-attack; action: add"></a-box>
+                <a-box id="gui-subenvelopeattack" position="0.4 0.7 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-attack; action: sub"></a-box>
+                <a-text id="attack-value" position="0.7 0.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+            </a-entity>
+
+            <a-entity>
+                <a-text id="gui-envelopedecay" position="-1 0.2 0.1" color="#7f7f7f" value="Decay"></a-text> 
+                <a-box id="gui-addenvelopedecay" position="0 0.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-decay; action: add"></a-box>
+                <a-box id="gui-subenvelopedecay" position="0.4 0.2 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-decay; action: sub"></a-box>
+                <a-text id="decay-value" position="0.7 0.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+            </a-entity>
+
+            <a-entity>
+                <a-text id="gui-envelopesustain" position="-1 -0.3 0.1" color="#7f7f7f" value="Sustain"></a-text> 
+                <a-box id="gui-addenvelopesustain" position="0 -0.3 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-sustain; action: add"></a-box>
+                <a-box id="gui-subenvelopesustain" position="0.4 -0.3 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-sustain; action: sub"></a-box>
+                <a-text id="sustain-value" position="0.7 -0.3 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+            </a-entity>
+
+            <a-entity>
+                <a-text id="gui-enveloperelease" position="-1 -0.8 0.1" color="#7f7f7f" value="Release"></a-text> 
+                <a-box id="gui-addenveloperelease" position="0 -0.8 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-release; action: add"></a-box>
+                <a-box id="gui-subenveloperelease" position="0.4 -0.8 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-release; action: sub"></a-box>
+                <a-text id="release-value" position="0.7 -0.8 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+            </a-entity>
+
 
         </a-entity>
 
