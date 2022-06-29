@@ -14,6 +14,17 @@ index = 0;
 dropEnable = 0;
 start = 0;
 
+/*  Vado a creare un array di array, ogni singolo array interno conterrà i dati dei setting del cubo in data posizione  */
+/*  On connect manderò l'array intero mentre per i singoli cambiamenti solo il contenuto della suddetta cella preceduto dalla posizione nell'array  */
+/*  Composizione Array:  */
+/*  Posizione 1 Volume  */
+/*  Posizione 2 Detune (forse lo cambio con qualcos'altro)  */
+/*  Posizione 3 Envelope Attack  */
+/*  Posizione 4 Envelope Decay  */
+/*  Posizione 5 Envelope Release  */
+/*  Posizione 6 Envelope Sustain  */
+cubeSettings = [];
+
 /*  array che contiene quali note saranno inserite nell'elemento che verrà posizionato con il prossimo click  */
 /*  viene pulito dopo ogni drop e viene riempito clickando su dei blocchi appositi preposizionati quando il mondo viene creato  */
 //Default è vuoto ma mi serve per fare testing fin quando non implemento un metodo per selezionare le note
@@ -39,6 +50,8 @@ cubeEnvelopeDecay = 2;
 cubeEnvelopeRelease = 0.5;
 cubeEnvelopeSustain = 0.5;
 
+defaultCubeSettings = [-12, 0, 3, 2, 0.5, 0.5];
+
 //OUTDATED, usato per i gli oggetti statici
 riproducisynth = 0;
 riproduciosc = 0;
@@ -60,29 +73,35 @@ AFRAME.registerComponent('intersection-spawn', {
             if (evt.detail.intersection.object.el.id == "ground" && musicDrop.length != 0) {
 
                 // Invia in broadcast le note che vanno nel polysynth
-                NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);
+                NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);                
 
-                // Creazione elementi
+                //Cube creation
                 var spawnEl = document.createElement('a-entity');
                 var correctPosition = evt.detail.intersection.point;
-
-                //fix posizione per rendere il cubo interamente sopra il terreno
                 correctPosition.y = 0.550;
-
                 spawnEl.setAttribute('networked', { persistent: true, template: this.data.template });
                 spawnEl.setAttribute('position', correctPosition);
-
                 arrayMusicale[index] = 0;
-
-                // Aggiungi alla scena
                 el.sceneEl.appendChild(spawnEl);
-
-                // Genera l'evento che notifica la creazione di un elemento persistente
                 NAF.utils.getNetworkedEntity(spawnEl).then((networkedEl) => {
                     document.body.dispatchEvent(new CustomEvent('persistentEntityCreated', { detail: { el: spawnEl } }));
                 });
 
                 document.getElementById("notebox").value = "";
+
+
+                //GUI creation
+                var gui = document.createElement('a-entity');
+                var guipos = correctPosition;
+                guipos.x += 2;
+                guipos.y += 1;
+                gui.setAttribute('networked', { persistent: true, template: this.data.template2 });
+                gui.setAttribute('position', guipos);
+                gui.setAttribute('id', index);
+                el.sceneEl.appendChild(gui);
+                NAF.utils.getNetworkedEntity(gui).then((networkedEl) => {
+                    document.body.dispatchEvent(new CustomEvent('persistentEntityCreated', { detail: { el: gui } }));
+                });
 
             }
         });
@@ -178,6 +197,12 @@ AFRAME.registerComponent("polysynth", {
 AFRAME.registerComponent("polysynth", {
     schema: {
         note: { type: 'string' },
+        volume: { type: 'number' },
+        detune: { type: 'number' },
+        attack: { type: 'number' },
+        decay: { type: 'number' },
+        sustain: { type: 'number' },
+        release: { type: 'number' },
     },
     init: function () {
 
@@ -187,8 +212,12 @@ AFRAME.registerComponent("polysynth", {
         // Creazione Componenti Musicali
         this.physicalObj = this.el.object3D;
 
+        //cubeSettings[this.objPos] = defaultCubeSettings;
+        cubeSettings.push(defaultCubeSettings);
+
+        var distortion = new Tone.Distortion(0);    //amount of distortion, between 0-1
         this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z).toDestination();
-        this.polysynth = new Tone.PolySynth().set({
+        /*this.polysynth = new Tone.PolySynth().set({
             envelope: {
                 attackCurve: "exponential",
                 attack: cubeEnvelopeAttack,
@@ -196,20 +225,47 @@ AFRAME.registerComponent("polysynth", {
                 sustain: cubeEnvelopeSustain,
                 release: cubeEnvelopeRelease,
             }
-        }).connect(this.pannerpolysynth);
+        }).connect(this.pannerpolysynth);*/
+
+        this.polysynth = new Tone.PolySynth().set({
+            envelope: {
+                attackCurve: "exponential",
+                attack: cubeSettings[this.objPos][2],
+                decay: cubeSettings[this.objPos][3],
+                sustain: cubeSettings[this.objPos][4],
+                release: cubeSettings[this.objPos][5],
+            }
+        });
+
+        this.polysynth.chain(distortion, this.pannerpolysynth);
 
         // Imposta il volume iniziale del suono riprodotto
-        this.polysynth.volume.value = cubeVolume;
+        this.polysynth.volume.value = cubeSettings[this.objPos][0];
 
-        this.polysynth.set({ detune: cubeDetune });
+        this.polysynth.set({detune: cubeSettings[this.objPos][1]});
 
         this.data.note = notePopuling();
+        this.data.volume = cubeSettings[this.objPos][0];
+        this.data.detune = cubeSettings[this.objPos][1];
+        this.data.attack = cubeSettings[this.objPos][2];
+        this.data.decay = cubeSettings[this.objPos][3];
+        this.data.sustain = cubeSettings[this.objPos][4];
+        this.data.release = cubeSettings[this.objPos][5];
+
     },
     tick: function () {
         this.pannerpolysynth.setPosition(this.el.object3D.position.x, this.el.object3D.position.y, this.el.object3D.position.z);
     },
+    updateColor() {
+        if (this.el.getAttribute('material').color == "red")
+            this.el.setAttribute('material', 'color', "blue")
+        else
+            this.el.setAttribute('material', 'color', "red")
+
+    },
     events: {
         click: function (evt) {
+            NAF.utils.takeOwnership(this.el);
             if (!start) {
                 Tone.start();
                 start++;
@@ -221,7 +277,7 @@ AFRAME.registerComponent("polysynth", {
                 //Invio messaggio disattivazione
                 var command = this.objPos + '-off'
                 NAF.connection.broadcastDataGuaranteed('cube-commands', command);
-
+                this.updateColor();
             }
             else {
                 arrayMusicale[this.objPos] = 1;
@@ -230,6 +286,7 @@ AFRAME.registerComponent("polysynth", {
                 //Invio messaggio attivazione
                 var command = this.objPos + '-on'
                 NAF.connection.broadcastDataGuaranteed('cube-commands', command);
+                this.updateColor();
 
             }
         },
@@ -243,7 +300,21 @@ AFRAME.registerComponent("polysynth", {
             //this.polysynth.triggerRelease(this.data.note, now);
             this.polysynth.triggerRelease(this.data.note);
         },
-        volumeChange: function () {
+        changeSettings: function(){
+            this.polysynth.volume.value = cubeSettings[this.objPos][0];
+            this.polysynth.set({detune: cubeSettings[this.objPos][1]});
+            this.polysynth.set({
+                envelope: {
+                    attackCurve: "exponential",
+                    attack: cubeSettings[this.objPos][2],
+                    decay: cubeSettings[this.objPos][3],
+                    sustain: cubeSettings[this.objPos][4],
+                    release: cubeSettings[this.objPos][5],
+                }
+            });
+        }
+        //andranno cambiati quando finisco il cambiamento per la GUI 
+        /*volumeChange: function () {
             this.polysynth.volume.value = cubeVolume;
         },
         detuneChange: function () {
@@ -251,8 +322,6 @@ AFRAME.registerComponent("polysynth", {
 
         },
         updateEnvelope: function () {
-
-
             this.polysynth.set({
                 envelope: {
                     attackCurve: "exponential",
@@ -262,7 +331,7 @@ AFRAME.registerComponent("polysynth", {
                     release: cubeEnvelopeRelease,
                 }
             });
-        }
+        },*/
     }
 });
 
@@ -503,8 +572,6 @@ AFRAME.registerComponent('change-detune', {
     }
 });
 
-
-//a caso aggiunge 0.5 al testo lmao
 AFRAME.registerComponent('change-envelope', {
     schema: {
         argument: { type: 'string' },

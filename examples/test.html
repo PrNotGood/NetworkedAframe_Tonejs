@@ -7,16 +7,21 @@
     <meta name="description" content="Networked Aframe + Tone.js">
     <link rel="shortcut icon" href="/img/icon.png">
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.4.0/socket.io.slim.js"></script>
     <script src="/easyrtc/easyrtc.js"></script>
     <script src="/dist/networked-aframe.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+    <script
+        src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
     <script src="https://unpkg.com/tone"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
+    <script
+        src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
     <script src="https://rawgit.com/rdub80/aframe-gui/master/dist/aframe-gui.min.js"></script>
     <script src="/js/spawn-in-circle.component.js"></script>
     <script src="/js/musicComponents.js"></script>
@@ -47,6 +52,17 @@
                     template: '#cube-template',
                     components: [
                         "position",
+                        "material"
+                    ]
+                });
+            }
+            if (!NAF.schemas.hasTemplate("#gui-template")) {
+                NAF.schemas.add({
+                    template: '#gui-template',
+                    components: [
+                        "position",
+                        "material",
+                        "id"
                     ]
                 });
             }
@@ -65,7 +81,15 @@
                           audio: true; 
                           adapter: easyrtc;
                           ">
-        
+
+        <!--  User + Camera  Moved over assets to prevent the injection of another camera  -->
+        <a-entity id="player" networked="template: #avatar-template; attachTemplateToLocal: false;" camera
+            position="0 1.6 0" spawn-in-circle="radius:3" wasd-controls look-controls position-listener
+            tracked-vr-hands>
+            <a-cursor intersection-spawn="event: click; template: #cube-template; template2: #gui-template"></a-cursor>
+            <a-sphere class="head" visible="false" random-color></a-sphere>
+        </a-entity>
+
         <!-- Templates -->
         <a-assets>
 
@@ -92,12 +116,73 @@
             <!--  Cube Template  -->
             <template id="cube-template">
                 <a-entity geometry="primitive: box; height: 1; depth: 1; width: 1"
-                    material="shader: flat; color: purple" index polysynth></a-entity>
+                    material="color: red" index polysynth></a-entity>
             </template>
 
-            <!-- Text Template  -->
-            <template id="note-text">
-                <a-text value="testo"></a-text>
+            <!-- GUI Template  -->
+            <template id="gui-template">
+                <a-entity>
+
+                    <a-box id="gui-background" depth="0.1" height="6" width="3" color="#0055b3"></a-box>
+                    <a-text id="gui-title" position="-1.3 2.7 0.1" color="#7f7f7f" value="Common GUI"></a-text>
+        
+                    <a-entity>
+                        <a-text id="gui-volume" position="-1 2.2 0.1" color="#7f7f7f" value="Volume"></a-text>
+                        <a-box id="gui-addvolume" position="0 2.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3"
+                            change-volume="action: add"></a-box>
+                        <a-box id="gui-subvolume" position="0.4 2.2 0.1" color="#F00" depth="0.2" height="0.3" width="0.3"
+                            change-volume="action: sub"></a-box>
+                        <a-text id="volume-value" position="0.7 2.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>
+        
+                    <a-entity>
+                        <a-text id="gui-detune" position="-1 1.7 0.1" color="#7f7f7f" value="Detune"></a-text>
+                        <a-box id="gui-adddetune" position="0 1.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3"
+                            change-detune="action: add"></a-box>
+                        <a-box id="gui-subdetune" position="0.4 1.7 0.1" color="#F00" depth="0.2" height="0.3" width="0.3"
+                            change-detune="action: sub"></a-box>
+                        <a-text id="detune-value" position="0.7 1.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>
+        
+                    <a-text id="gui-envelope" position="-1.3 1.2 0.1" color="#7f7f7f" value="Envelope GUI"></a-text>
+        
+        
+                    <a-entity>
+                        <a-text id="gui-envelopeattack" position="-1 0.7 0.1" color="#7f7f7f" value="Attack"></a-text>
+                        <a-box id="gui-addenvelopeattack" position="0 0.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3"
+                            change-envelope="argument: envelope-attack; action: add"></a-box>
+                        <a-box id="gui-subenvelopeattack" position="0.4 0.7 0.1" color="#F00" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-attack; action: sub"></a-box>
+                        <a-text id="attack-value" position="0.7 0.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>
+        
+                    <a-entity>
+                        <a-text id="gui-envelopedecay" position="-1 0.2 0.1" color="#7f7f7f" value="Decay"></a-text>
+                        <a-box id="gui-addenvelopedecay" position="0 0.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3"
+                            change-envelope="argument: envelope-decay; action: add"></a-box>
+                        <a-box id="gui-subenvelopedecay" position="0.4 0.2 0.1" color="#F00" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-decay; action: sub"></a-box>
+                        <a-text id="decay-value" position="0.7 0.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>
+        
+                    <a-entity>
+                        <a-text id="gui-envelopesustain" position="-1 -0.3 0.1" color="#7f7f7f" value="Sustain"></a-text>
+                        <a-box id="gui-addenvelopesustain" position="0 -0.3 0.1" color="#0F0" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-sustain; action: add"></a-box>
+                        <a-box id="gui-subenvelopesustain" position="0.4 -0.3 0.1" color="#F00" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-sustain; action: sub"></a-box>
+                        <a-text id="sustain-value" position="0.7 -0.3 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>
+        
+                    <a-entity>
+                        <a-text id="gui-enveloperelease" position="-1 -0.8 0.1" color="#7f7f7f" value="Release"></a-text>
+                        <a-box id="gui-addenveloperelease" position="0 -0.8 0.1" color="#0F0" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-release; action: add"></a-box>
+                        <a-box id="gui-subenveloperelease" position="0.4 -0.8 0.1" color="#F00" depth="0.2" height="0.3"
+                            width="0.3" change-envelope="argument: envelope-release; action: sub"></a-box>
+                        <a-text id="release-value" position="0.7 -0.8 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
+                    </a-entity>        
+                </a-entity>
             </template>
 
             <!--  Note Selectors Template  -->
@@ -129,13 +214,7 @@
 
         </a-assets>
 
-        <!--  User + Camera  -->
-        <a-entity id="player" networked="template: #avatar-template; attachTemplateToLocal: false;" camera
-            position="0 1.6 0" spawn-in-circle="radius:3" wasd-controls look-controls position-listener
-            tracked-vr-hands>
-            <a-cursor intersection-spawn="event: click; template: #cube-template; template2: #note-text"></a-cursor>
-            <a-sphere class="head" visible="false" random-color></a-sphere>
-        </a-entity>
+        
 
 
         <!--  Background  -->
@@ -160,63 +239,7 @@
         <a-entity obj-model="obj: #plus-obj" position="6 1 -3" rotation="90 0 0" scale="0.3 0.3 0.3"
             change-octave="action: add"></a-entity>
 
-        <!--  Internal GUI  -->
-        <!--  Valori da modificare: volume, i valore dell'envelope (per il momento basta direi)  -->
-        <!--  Volendo non ci dovrebbe voler molto a farla condivisa, basta aggiungere dei messaggi con comandi e siamo apposto, ma vediamo  -->
-        <a-entity id="gui" position="-16 1.5 -3">
-
-            <a-box id="gui-background" depth="0.1" height="6" width="3" color="#0055b3"></a-box>
-            <a-text id="gui-title" position="-1.3 2.7 0.1" color="#7f7f7f" value="Common GUI"></a-text>
-
-            <!--  Line 1  -->
-            <a-entity>
-                <a-text id="gui-volume" position="-1 2.2 0.1" color="#7f7f7f" value="Volume"></a-text> 
-                <a-box id="gui-addvolume" position="0 2.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-volume="action: add"></a-box>
-                <a-box id="gui-subvolume" position="0.4 2.2 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-volume="action: sub"></a-box>
-                <a-text id="volume-value" position="0.7 2.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-            <!--  Line 2  -->
-            <a-entity>
-                <a-text id="gui-detune" position="-1 1.7 0.1" color="#7f7f7f" value="Detune"></a-text> 
-                <a-box id="gui-adddetune" position="0 1.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-detune="action: add"></a-box>
-                <a-box id="gui-subdetune" position="0.4 1.7 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-detune="action: sub"></a-box>
-                <a-text id="detune-value" position="0.7 1.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-            <a-text id="gui-envelope" position="-1.3 1.2 0.1" color="#7f7f7f" value="Envelope GUI"></a-text>
-
-
-            <a-entity>
-                <a-text id="gui-envelopeattack" position="-1 0.7 0.1" color="#7f7f7f" value="Attack"></a-text> 
-                <a-box id="gui-addenvelopeattack" position="0 0.7 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-attack; action: add"></a-box>
-                <a-box id="gui-subenvelopeattack" position="0.4 0.7 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-attack; action: sub"></a-box>
-                <a-text id="attack-value" position="0.7 0.7 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-            <a-entity>
-                <a-text id="gui-envelopedecay" position="-1 0.2 0.1" color="#7f7f7f" value="Decay"></a-text> 
-                <a-box id="gui-addenvelopedecay" position="0 0.2 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-decay; action: add"></a-box>
-                <a-box id="gui-subenvelopedecay" position="0.4 0.2 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-decay; action: sub"></a-box>
-                <a-text id="decay-value" position="0.7 0.2 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-            <a-entity>
-                <a-text id="gui-envelopesustain" position="-1 -0.3 0.1" color="#7f7f7f" value="Sustain"></a-text> 
-                <a-box id="gui-addenvelopesustain" position="0 -0.3 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-sustain; action: add"></a-box>
-                <a-box id="gui-subenvelopesustain" position="0.4 -0.3 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-sustain; action: sub"></a-box>
-                <a-text id="sustain-value" position="0.7 -0.3 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-            <a-entity>
-                <a-text id="gui-enveloperelease" position="-1 -0.8 0.1" color="#7f7f7f" value="Release"></a-text> 
-                <a-box id="gui-addenveloperelease" position="0 -0.8 0.1" color="#0F0" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-release; action: add"></a-box>
-                <a-box id="gui-subenveloperelease" position="0.4 -0.8 0.1" color="#F00" depth="0.2" height="0.3" width="0.3" change-envelope="argument: envelope-release; action: sub"></a-box>
-                <a-text id="release-value" position="0.7 -0.8 0.1" color="#7f7f7f" depth="0.2" value="Num"></a-text>
-            </a-entity>
-
-
-        </a-entity>
+        
 
     </a-scene>
 

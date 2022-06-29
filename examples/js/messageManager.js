@@ -14,12 +14,15 @@
 /*  Eventi per elementi creati dinamicamente  */
 eventOn = new Event('eventOn');
 eventOff = new Event('eventOff');
-volumeChange = new Event('volumeChange');
+changeSettings = new Event('changeSettings');
+
+/*volumeChange = new Event('volumeChange');
 detuneChange = new Event('detuneChange');
 changeOctave = new Event("changeOctave");
 updateEnvelope = new Event('updateEnvelope');
+updateDistortion = new Event('updateDistortion'); //da inserire*/
 
-
+nuovoClient = 0;
 
 //Incrementa l'index quando un'entità viene creata, ci saranno degli spazi vuoti dovuti a quando un utente si connette (viene generato l'avatar,
 //ma non influiscono sul funzionamento)
@@ -31,21 +34,23 @@ function onConnect() {
                 index++;
     });
 
-    document.getElementById("volume-value").setAttribute('value', cubeVolume);
-    document.getElementById("detune-value").setAttribute('value', cubeDetune);
-    document.getElementById("attack-value").setAttribute('value', cubeEnvelopeAttack);
-    document.getElementById("decay-value").setAttribute('value', cubeEnvelopeDecay);
-    document.getElementById("sustain-value").setAttribute('value', cubeEnvelopeRelease);
-    document.getElementById("release-value").setAttribute('value', cubeEnvelopeSustain);
-
+    NAF.connection.subscribeToDataChannel("initializedData", sendDataForInitialization);
     NAF.connection.subscribeToDataChannel("arraynote", createArray);
-    NAF.connection.subscribeToDataChannel("setting-commands", updateSettings);
+    NAF.connection.subscribeToDataChannel("arraymusicale", fillArrayMusicale);
+    NAF.connection.subscribeToDataChannel("onconnect-setting", setSettings);
     NAF.connection.subscribeToDataChannel('cube-commands', cubeManager);
     NAF.connection.subscribeToDataChannel('note-received', noteSet);
 
+    NAF.connection.broadcastDataGuaranteed("initializedData", NAF.clientId)
 
+
+    //turns out che questa roba fa cagare, perchè l'evento viene generato anche sui clients che si stanno attaccando, 
+    //non è quindi una one way con cui mandare i dati ai nuovi clients visto che anche questi fanno la stessa cosa
+    //visto che i soci del MIT non ci hanno pensato, probabilmente tocca fare tipo
+    //onConnect -> manda messaggio in broadcast in cui richiede tutti i dati e gli vengono inviati back
+    //così che si possano aggiornare i dati correttamente
     document.body.addEventListener('clientConnected', function (evt) {
-        //console.error('clientConnected event. clientId =', evt.detail.clientId);
+        if(evt.detail.clientId == nuovoClient){
         var cubes = document.querySelectorAll('[polysynth]');
         var arrayNote = [];
 
@@ -57,14 +62,11 @@ function onConnect() {
 
         //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
 
-        //messaggi inviati ai client appena connessi
         NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "volume:" + cubeVolume);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "detune:" + cubeDetune);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-attack:" + cubeEnvelopeAttack);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-decay:" + cubeEnvelopeDecay);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-sustain:" + cubeEnvelopeSustain);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "setting-commands", "envelope-release:" + cubeEnvelopeRelease);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraymusicale", arrayMusicale);
+        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "onconnect-setting", cubeSettings);
+    }
+        
     });
 
 }
@@ -137,24 +139,24 @@ AFRAME.registerComponent("msgsender", {
 
 
 function createArray(senderId, dataType, data, targetObj) {
-    //funzione che assegna ad ogni cubo il suo valore ATTENTO CHE MAGARI GLI INDICI NON SONO IN ORDINE
+    //funzione che assegna ad ogni cubo il suo valore
     //es arrayNote [["D1","C2"],["B2","C3"], null,
-
-    console.log(data);
 
     var cubes = document.querySelectorAll('[polysynth]');
     for (var i = 0; i < data.length; i++) {
         var index = cubes[i].getAttribute('index').indice;
 
         //cubes[i].object3D.setAttribute("polysynth", {note: data[index]});
-        console.log(data[index]);
-        console.log(cubes[i].getAttribute('polysynth').note);
 
         cubes[i].setAttribute('polysynth', 'note', data[index]);
+        console.log(cubes[i].getAttribute('polysynth').note);
+
     }
 }
 
-function updateSettings(senderId, dataType, data, targetObj) {
+
+//now it is going to be something like index:setting:modifier (having different GUI for each cube)
+/*function updateSettings(senderId, dataType, data, targetObj) {
 
     var cmd = data.split(':');
     var settingIndex = cmd[0];
@@ -241,7 +243,7 @@ function updateSettings(senderId, dataType, data, targetObj) {
     }
 
 
-}
+}*/
 
 function cubeManager(senderId, dataType, data, targetObj) {
     var cmd = data.split('-'); // command-index es: 1-on, 23-off
@@ -264,6 +266,25 @@ function cubeManager(senderId, dataType, data, targetObj) {
     }
 }
 
-function noteSet(senderId, dataType, data, targetObj){
+function noteSet(senderId, dataType, data, targetObj) {
     externalDrop = data;
+}
+
+function fillArrayMusicale(senderId, dataType, data, targetObj) {
+    arrayMusicale = data;
+}
+
+
+function setSettings(senderId, dataType, data, targetObj) {
+
+    cubeSettings = data;
+    var cubes = document.querySelectorAll('[polysynth]');
+    for (var i = 0; i < cubes.length; i++) {
+        cubes[i].dispatchEvent(changeSettings);
+    }
+}
+
+function sendDataForInitialization(senderId, dataType, data, targetObj) {
+    console.log(data);
+    nuovoClient = data;
 }
