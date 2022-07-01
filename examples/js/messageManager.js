@@ -15,6 +15,7 @@
 eventOn = new Event('eventOn');
 eventOff = new Event('eventOff');
 changeSettings = new Event('changeSettings');
+updateComponent = new Event('updateComponent');
 
 /*volumeChange = new Event('volumeChange');
 detuneChange = new Event('detuneChange');
@@ -38,8 +39,9 @@ function onConnect() {
     NAF.connection.subscribeToDataChannel("arraynote", createArray);
     NAF.connection.subscribeToDataChannel("arraymusicale", fillArrayMusicale);
     NAF.connection.subscribeToDataChannel("onconnect-setting", setSettings);
-    NAF.connection.subscribeToDataChannel('cube-commands', cubeManager);
-    NAF.connection.subscribeToDataChannel('note-received', noteSet);
+    NAF.connection.subscribeToDataChannel("cube-commands", cubeManager);
+    NAF.connection.subscribeToDataChannel("note-received", noteSet);
+    NAF.connection.subscribeToDataChannel("update-settings", updateSettings)
 
     NAF.connection.broadcastDataGuaranteed("initializedData", NAF.clientId)
 
@@ -50,24 +52,29 @@ function onConnect() {
     //onConnect -> manda messaggio in broadcast in cui richiede tutti i dati e gli vengono inviati back
     //così che si possano aggiornare i dati correttamente
     document.body.addEventListener('clientConnected', function (evt) {
-        if(evt.detail.clientId == nuovoClient){
-        var cubes = document.querySelectorAll('[polysynth]');
-        var arrayNote = [];
+        if (evt.detail.clientId == nuovoClient) {
+            var cubes = document.querySelectorAll('[polysynth]');
+            var arrayNote = [];
 
-        //empty spaces = undefined in teoria
-        for (var i = 0; i < cubes.length; i++) {
-            var index = cubes[i].getAttribute('index').indice;
-            arrayNote[index] = cubes[i].getAttribute('polysynth').note;
+            //empty spaces = undefined in teoria
+            for (var i = 0; i < cubes.length; i++) {
+                var index = cubes[i].getAttribute('index').indice;
+                arrayNote[index] = cubes[i].getAttribute('polysynth').note;
+            }
+
+            //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
+
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraymusicale", arrayMusicale);
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "onconnect-setting", cubeSettings);
+        }
+        else{
+            console.log(cubeSettings);
         }
 
-        //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
-
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraymusicale", arrayMusicale);
-        NAF.connection.sendDataGuaranteed(evt.detail.clientId, "onconnect-setting", cubeSettings);
-    }
-        
     });
+
+    
 
 }
 
@@ -287,4 +294,23 @@ function setSettings(senderId, dataType, data, targetObj) {
 function sendDataForInitialization(senderId, dataType, data, targetObj) {
     console.log(data);
     nuovoClient = data;
+}
+
+function updateSettings(senderId, dataType, data, targetObj) {
+    var cmd = data.split(':');
+    var cubeInd = cmd[0];
+
+    var cube;
+    var cubes = document.querySelectorAll('[index]');
+    for (var i = 0; i < cubes.length; i++) {
+        if (cubes[i].getAttribute('index').indice == cubeInd)
+            cube = cubes[i];
+    }
+    cubeSettings[cmd[0]][cmd[1]] = cmd[2];
+
+    cube.dispatchEvent(changeSettings);
+
+    console.log(data);
+    console.log(cubeSettings);
+
 }

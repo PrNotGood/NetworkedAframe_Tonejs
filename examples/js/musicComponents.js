@@ -17,12 +17,12 @@ start = 0;
 /*  Vado a creare un array di array, ogni singolo array interno conterrà i dati dei setting del cubo in data posizione  */
 /*  On connect manderò l'array intero mentre per i singoli cambiamenti solo il contenuto della suddetta cella preceduto dalla posizione nell'array  */
 /*  Composizione Array:  */
-/*  Posizione 1 Volume  */
-/*  Posizione 2 Detune (forse lo cambio con qualcos'altro)  */
-/*  Posizione 3 Envelope Attack  */
-/*  Posizione 4 Envelope Decay  */
+/*  Posizione 0 Volume  */
+/*  Posizione 1 Detune (forse lo cambio con qualcos'altro)  */
+/*  Posizione 2 Envelope Attack  */
+/*  Posizione 3 Envelope Decay  */
+/*  Posizione 4 Envelope Sustain  */
 /*  Posizione 5 Envelope Release  */
-/*  Posizione 6 Envelope Sustain  */
 cubeSettings = [];
 
 /*  array che contiene quali note saranno inserite nell'elemento che verrà posizionato con il prossimo click  */
@@ -50,7 +50,7 @@ cubeEnvelopeDecay = 2;
 cubeEnvelopeRelease = 0.5;
 cubeEnvelopeSustain = 0.5;
 
-defaultCubeSettings = [-12, 0, 3, 2, 0.5, 0.5];
+//defaultCubeSettings = [-12, 0, 3, 2, 0.5, 0.5]; usando il push poi va a modificare l'oggetto quindi rimane lo stesso per tutti
 
 //OUTDATED, usato per i gli oggetti statici
 riproducisynth = 0;
@@ -65,7 +65,6 @@ AFRAME.registerComponent('intersection-spawn', {
     },
 
     init: function () {
-        // Forse meglio const
         var data = this.data;
         var el = this.el;
 
@@ -73,7 +72,7 @@ AFRAME.registerComponent('intersection-spawn', {
             if (evt.detail.intersection.object.el.id == "ground" && musicDrop.length != 0) {
 
                 // Invia in broadcast le note che vanno nel polysynth
-                NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);                
+                NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);
 
                 //Cube creation
                 var spawnEl = document.createElement('a-entity');
@@ -97,7 +96,7 @@ AFRAME.registerComponent('intersection-spawn', {
                 guipos.y += 1;
                 gui.setAttribute('networked', { persistent: true, template: this.data.template2 });
                 gui.setAttribute('position', guipos);
-                gui.setAttribute('id', index);
+                //gui.setAttribute('id', index);
                 el.sceneEl.appendChild(gui);
                 NAF.utils.getNetworkedEntity(gui).then((networkedEl) => {
                     document.body.dispatchEvent(new CustomEvent('persistentEntityCreated', { detail: { el: gui } }));
@@ -116,6 +115,15 @@ AFRAME.registerComponent('index', {
     },
     init: function () {
         this.data.indice = index;
+    }
+});
+
+AFRAME.registerComponent('indexgui', {
+    schema: {
+        indice: { type: 'int' },
+    },
+    init: function () {
+        this.data.indice = index - 1; //-1 perchè creandolo dopo il cubo l'index viene incrementato, se funziona tutto poi sposto la creazione sopra e siamo apposto
     }
 });
 
@@ -213,7 +221,8 @@ AFRAME.registerComponent("polysynth", {
         this.physicalObj = this.el.object3D;
 
         //cubeSettings[this.objPos] = defaultCubeSettings;
-        cubeSettings.push(defaultCubeSettings);
+        //cubeSettings.push(defaultCubeSettings); //questo non va bene perchè mette lo stesso oggetto, quindi quando ne cambio uno, cambiano tutti
+        cubeSettings[this.objPos] = [-12, 0, 3, 2, 0.5, 0.5];
 
         var distortion = new Tone.Distortion(0);    //amount of distortion, between 0-1
         this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z).toDestination();
@@ -242,7 +251,7 @@ AFRAME.registerComponent("polysynth", {
         // Imposta il volume iniziale del suono riprodotto
         this.polysynth.volume.value = cubeSettings[this.objPos][0];
 
-        this.polysynth.set({detune: cubeSettings[this.objPos][1]});
+        this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
 
         this.data.note = notePopuling();
         this.data.volume = cubeSettings[this.objPos][0];
@@ -251,6 +260,9 @@ AFRAME.registerComponent("polysynth", {
         this.data.decay = cubeSettings[this.objPos][3];
         this.data.sustain = cubeSettings[this.objPos][4];
         this.data.release = cubeSettings[this.objPos][5];
+
+        this.myGUI = document.getElementById(this.objPos);
+
 
     },
     tick: function () {
@@ -300,9 +312,9 @@ AFRAME.registerComponent("polysynth", {
             //this.polysynth.triggerRelease(this.data.note, now);
             this.polysynth.triggerRelease(this.data.note);
         },
-        changeSettings: function(){
+        changeSettings: function () {
             this.polysynth.volume.value = cubeSettings[this.objPos][0];
-            this.polysynth.set({detune: cubeSettings[this.objPos][1]});
+            this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
             this.polysynth.set({
                 envelope: {
                     attackCurve: "exponential",
@@ -312,6 +324,14 @@ AFRAME.registerComponent("polysynth", {
                     release: cubeSettings[this.objPos][5],
                 }
             });
+
+            var GUIs = document.querySelectorAll('[text-changer]');
+            for(var i = 0; i < GUIs.length; i++){
+                if(GUIs[i].getAttribute('text-changer').indexcube == this.objPos)
+                    GUIs[i].dispatchEvent(updateComponent);
+            }
+            //dispatch l'evento per il cambiamento del valore nel testo della GUI -- credo qua sia meglio
+
         }
         //andranno cambiati quando finisco il cambiamento per la GUI 
         /*volumeChange: function () {
@@ -675,6 +695,88 @@ AFRAME.registerComponent('change-envelope', {
             }
 
             NAF.connection.broadcastDataGuaranteed('setting-commands', cmd);
+        }
+    }
+});
+
+AFRAME.registerComponent('text-changer', {
+    schema: {
+        indexcube: { type: 'int' },
+        settingindex: { type: 'int' }
+    },
+
+    init: function () {
+        //this.data.indexcube = this.el.parentNode.parentNode.id; //mi condivide l'id giusto nell'editor, ma poi nella pagina html rimane l'id networked
+        /*var GUIs = document.querySelectorAll('[indexgui]');
+        for(var i = 0; i < GUIs.length; i++){
+            if(GUIs[i] == this.el.parentNode.parentNode)
+                this.data.indexcube = GUIs[i].getAttribute('indexgui').indice - 1;
+        }*/
+
+        this.data.indexcube = this.el.parentNode.parentNode.getAttribute("indexgui").indice;
+        this.el.setAttribute('value', cubeSettings[this.data.indexcube][this.data.settingindex]);
+    },
+    events: {
+        updateComponent: function () {
+            this.el.setAttribute('value', cubeSettings[this.data.indexcube][this.data.settingindex]);
+        }
+    }
+});
+
+AFRAME.registerComponent('setting-changer', {
+    schema: {
+        indexcube: { type: 'int' },
+        settingindex: { type: 'int' },
+        action: { type: 'string' }
+    },
+    init: function () {
+        this.cube;
+        //this.data.indexcube = this.el.parentNode.parentNode.id;
+
+        /*var GUIs = document.querySelectorAll('[indexgui]');
+        for(var i = 0; i < GUIs.length; i++){
+            if(GUIs[i] == this.el.parentNode.parentNode)
+                this.data.indexcube = GUIs[i].getAttribute('indexgui').indice - 1;
+        }*/
+        this.data.indexcube = this.el.parentNode.parentNode.getAttribute("indexgui").indice;
+        var cubes = document.querySelectorAll('[polysynth]');
+        for (var i = 0; i < cubes.length; i++) {
+            if (cubes[i].getAttribute('index').indice == this.data.indexcube)
+                this.cube = cubes[i];
+        }
+    },
+    events: {
+        click: function () {
+            //change the value in the array
+            if (this.data.action == 'add') {
+                if (this.data.settingindex == 4) {//sustain operates on +-0.1 instead of +-0.5
+                    cubeSettings[this.data.indexcube][this.data.settingindex] += 0.1;
+                    if (cubeSettings[this.data.indexcube][this.data.settingindex] > 1)
+                        cubeSettings[this.data.indexcube][this.data.settingindex] = 1;
+                }
+                else{
+                    cubeSettings[this.data.indexcube][this.data.settingindex] += 0.5;
+                }
+            }
+            else if(this.data.action == 'sub'){
+                if (this.data.settingindex == 4) {//sustain operates on +-0.1 instead of +-0.5
+                    cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.1;
+                }
+                else{
+                    cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.5;
+                }
+                if(cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && (this.data.settingindex != 0 && this.data.settingindex != 1))
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = 0;
+            }
+
+            //deploy the event on the cube for it to change the value
+            this.cube.dispatchEvent(changeSettings);
+
+
+            var cmd = '';
+            cmd += this.data.indexcube + ':' + this.data.settingindex + ':' + cubeSettings[this.data.indexcube][this.data.settingindex];
+            NAF.connection.broadcastDataGuaranteed("update-settings", cmd);
+
         }
     }
 });
