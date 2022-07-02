@@ -1,4 +1,4 @@
-{/*  Eventi per attivazione oggetti Musicali  */
+{/*  Eventi per attivazione oggetti musicali statici OUTDATED */
     /*  Necessari in quanto triggerare il click sul component genererebbe comunque bubbling  */
     /*  E si andrebbe incontro ad un loop di messaggi inviati  */
     /*  Probabile che mi basti un evento per accendere e uno per spegnere se riesco a implementare  */
@@ -14,27 +14,38 @@
 /*  Eventi per elementi creati dinamicamente  */
 eventOn = new Event('eventOn');
 eventOff = new Event('eventOff');
-changeSettings = new Event('changeSettings');
-updateComponent = new Event('updateComponent');
+changeSettings = new Event('changeSettings');  //Aggiornamento valori dei cubi
+updateComponent = new Event('updateComponent');  //Aggiornamento scritte nelle GUIs
+changeOctave = new Event("changeOctave");  //Aggiornamento valori delle ottave
 
-/*volumeChange = new Event('volumeChange');
+
+/* Eventi utilizzati per elementi statici
+volumeChange = new Event('volumeChange');
 detuneChange = new Event('detuneChange');
-changeOctave = new Event("changeOctave");
 updateEnvelope = new Event('updateEnvelope');
-updateDistortion = new Event('updateDistortion'); //da inserire*/
+updateDistortion = new Event('updateDistortion');
+*/
 
+//Necessario per evitare che i nuovi client appena connessi, mandino i loro dati (vuoti) agli altri client e sovrascrivano i valori presenti
+//Funzionamento: appena mi connetto vado ad inviare il mio id a tutti i client già connessi (in broadcast), loro vanno ad inserire questo valore in
+//nuovoClient, poi ho un controllo che, se l'id del nuovo client connesso e questa variabile qua sono identici, allora vado ad inviare i dati, altrimenti no
+//Notare che i due valori sono identici su tutte le macchine che non sono quella appena connessa
 nuovoClient = 0;
 
-//Incrementa l'index quando un'entità viene creata, ci saranno degli spazi vuoti dovuti a quando un utente si connette (viene generato l'avatar,
-//ma non influiscono sul funzionamento)
+
 function onConnect() {
 
+    //Incrementa l'index quando un'entità viene creata, funziona correttamente dato che gli elementi vengono creati in ordine di apparizione sull'html,
+    //Quindi non da problemi
+    //Unica nota, nel momento in cui si volesse implementare la rimozione dei cubi questo sarebbe problematico, perchè i nuovi client che si connettono avrebbero elementi shiftati
+    //(Una posizione sarebbe vuota in seguito alla rimozione dell'elemento, ma i nuovi client non potrebbero saperlo)
     document.body.addEventListener('entityCreated', function (evt) {
         if (evt.detail.el.getAttribute('index') != null)
             if (evt.detail.el.getAttribute('index').indice != undefined)
                 index++;
     });
 
+    //All the messages we're going to listen to and thei respective callbacks
     NAF.connection.subscribeToDataChannel("initializedData", sendDataForInitialization);
     NAF.connection.subscribeToDataChannel("arraynote", createArray);
     NAF.connection.subscribeToDataChannel("arraymusicale", fillArrayMusicale);
@@ -42,6 +53,7 @@ function onConnect() {
     NAF.connection.subscribeToDataChannel("cube-commands", cubeManager);
     NAF.connection.subscribeToDataChannel("note-received", noteSet);
     NAF.connection.subscribeToDataChannel("update-settings", updateSettings)
+
 
     NAF.connection.broadcastDataGuaranteed("initializedData", NAF.clientId)
 
@@ -53,28 +65,23 @@ function onConnect() {
     //così che si possano aggiornare i dati correttamente
     document.body.addEventListener('clientConnected', function (evt) {
         if (evt.detail.clientId == nuovoClient) {
+
+
             var cubes = document.querySelectorAll('[polysynth]');
             var arrayNote = [];
 
-            //empty spaces = undefined in teoria
             for (var i = 0; i < cubes.length; i++) {
                 var index = cubes[i].getAttribute('index').indice;
                 arrayNote[index] = cubes[i].getAttribute('polysynth').note;
             }
 
-            //NAF.connection.broadcastDataGuaranteed("arraynote", arrayNote); 
-
-            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote);
-            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraymusicale", arrayMusicale);
-            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "onconnect-setting", cubeSettings);
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraynote", arrayNote); //Invia un array, con tutte le note dei vari cubi es: in posizione 2 dell'array avrò il cubo con index 2 e come valore la lista delle note di quel cubo
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "arraymusicale", arrayMusicale);  //Invia lo stato dei cubi, 1 se il cubo in quella posizione sta riproducendo musica, 0 se è spento, serve per gestire la sincronizzazione del suono (volendo potrei sostituirlo con un controllo sul colore del ubo visto che è condiviso, ma mi sembra meglio così)
+            NAF.connection.sendDataGuaranteed(evt.detail.clientId, "onconnect-setting", cubeSettings);  //Invia una matrice contenente tutti i valori delle impostazioni per ogni cubo, in modo che siano sincronizzati
         }
-        else{
-            console.log(cubeSettings);
-        }
-
     });
 
-    
+
 
 }
 
@@ -153,10 +160,8 @@ function createArray(senderId, dataType, data, targetObj) {
     for (var i = 0; i < data.length; i++) {
         var index = cubes[i].getAttribute('index').indice;
 
-        //cubes[i].object3D.setAttribute("polysynth", {note: data[index]});
-
         cubes[i].setAttribute('polysynth', 'note', data[index]);
-        console.log(cubes[i].getAttribute('polysynth').note);
+        //console.log(cubes[i].getAttribute('polysynth').note);
 
     }
 }
@@ -252,6 +257,7 @@ function createArray(senderId, dataType, data, targetObj) {
 
 }*/
 
+/*  Funzione che va ad attivare e disattivare i cubi a seconda dei messaggi che gli vengono inviati  */
 function cubeManager(senderId, dataType, data, targetObj) {
     var cmd = data.split('-'); // command-index es: 1-on, 23-off
     var ind = cmd[0];
@@ -273,17 +279,21 @@ function cubeManager(senderId, dataType, data, targetObj) {
     }
 }
 
+/*  Funzione che va a salvare in externalDrop il valore che gli arriva, questo serve quando un altro client crea un cubo e invia a tutti gli altri client  */
+/*  Le note associate al suddetto cubo  */
 function noteSet(senderId, dataType, data, targetObj) {
     externalDrop = data;
 }
 
+/*  Funzione che va a salvare nell'arrayMusicale i dati ricevuti, questo serve per identificare cubi attivi o spenti, in modo da non attivarli due volte  */
+/*  Il che porterebbe ad inconsistenze  */
 function fillArrayMusicale(senderId, dataType, data, targetObj) {
     arrayMusicale = data;
 }
 
-
+/*  Funzione che viene chiamata nel momento in cui riceviamo la matrice con tutte le impostazioni del cubi (appena ci connettiamo)  */
+/*  Successivamente va a generare l'evento per applicare le impostazioni ricevute ai propri cubi  */
 function setSettings(senderId, dataType, data, targetObj) {
-
     cubeSettings = data;
     var cubes = document.querySelectorAll('[polysynth]');
     for (var i = 0; i < cubes.length; i++) {
@@ -291,11 +301,15 @@ function setSettings(senderId, dataType, data, targetObj) {
     }
 }
 
+/*  Funzione utilizzata per evitare che i client appena connessi inviino le loro impostazioni (vuote) ad altri client e finiscano così per sovrascrivere i dati  */
+/*  Presenti sulle altre macchine  */
 function sendDataForInitialization(senderId, dataType, data, targetObj) {
     console.log(data);
     nuovoClient = data;
 }
 
+/*  Funzione utilizzata nel momento in cui vengono effettuate delle modifiche alle impostazioni da parte di altri client  */
+/*  La struttura del messaggio è indiceCubo:indiceImpostazione:nuovoValore  */
 function updateSettings(senderId, dataType, data, targetObj) {
     var cmd = data.split(':');
     var cubeInd = cmd[0];
@@ -309,8 +323,4 @@ function updateSettings(senderId, dataType, data, targetObj) {
     cubeSettings[cmd[0]][cmd[1]] = cmd[2];
 
     cube.dispatchEvent(changeSettings);
-
-    console.log(data);
-    console.log(cubeSettings);
-
 }

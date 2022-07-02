@@ -71,7 +71,7 @@ AFRAME.registerComponent('intersection-spawn', {
         el.addEventListener(data.event, evt => {
             if (evt.detail.intersection.object.el.id == "ground" && musicDrop.length != 0) {
 
-                // Invia in broadcast le note che vanno nel polysynth
+                // Invia in broadcast le note che vanno nel polysynth agli altri utenti connessi
                 NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);
 
                 //Cube creation
@@ -248,27 +248,30 @@ AFRAME.registerComponent("polysynth", {
 
         this.polysynth.chain(distortion, this.pannerpolysynth);
 
-        // Imposta il volume iniziale del suono riprodotto
+        // Imposta il volume iniziale del suono riprodotto e il valore del detune
         this.polysynth.volume.value = cubeSettings[this.objPos][0];
-
         this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
 
-        this.data.note = notePopuling();
-        this.data.volume = cubeSettings[this.objPos][0];
-        this.data.detune = cubeSettings[this.objPos][1];
-        this.data.attack = cubeSettings[this.objPos][2];
-        this.data.decay = cubeSettings[this.objPos][3];
+        //vado a salvare tutti i dati nella matrice delle impostazioni (1° posizione = indice del cubo, 2° posizione = indice dell'impostazione)
+        this.data.volume  = cubeSettings[this.objPos][0];
+        this.data.detune  = cubeSettings[this.objPos][1];
+        this.data.attack  = cubeSettings[this.objPos][2];
+        this.data.decay   = cubeSettings[this.objPos][3];
         this.data.sustain = cubeSettings[this.objPos][4];
         this.data.release = cubeSettings[this.objPos][5];
 
-        this.myGUI = document.getElementById(this.objPos);
+        this.data.note = notePopuling();
+
+        //this.myGUI = document.getElementById(this.objPos); non credo sia utile, controllare se succedono danni è per colpa di questo testo commentato
 
 
     },
     tick: function () {
+        //serve per tenere la posizione corretta, altrimenti viene costantemente portato a 0,0,0
         this.pannerpolysynth.setPosition(this.el.object3D.position.x, this.el.object3D.position.y, this.el.object3D.position.z);
     },
     updateColor() {
+        //cambia il colore del cubo a seconda e è accesso o meno, non è sincronizzato direttamente, ma non dovrebbe succedere che siano desincronizzati
         if (this.el.getAttribute('material').color == "red")
             this.el.setAttribute('material', 'color', "blue")
         else
@@ -277,42 +280,50 @@ AFRAME.registerComponent("polysynth", {
     },
     events: {
         click: function (evt) {
+            //serve per far si che le modifiche fatte al cubo siano condivise per tutti (in questo caso agisce solo sul colore)
             NAF.utils.takeOwnership(this.el);
+
+            //Best pratice di Tone.js, prima di far partire qualunque suono viene consigliato di chiamare Tone.start();
             if (!start) {
                 Tone.start();
                 start++;
             }
             if (arrayMusicale[this.objPos]) {
+                //vado a disattivare il cubo nel momento in cui questo è acceso
                 arrayMusicale[this.objPos] = 0;
                 this.polysynth.triggerRelease(this.data.note);
 
-                //Invio messaggio disattivazione
+                //Invio messaggio disattivazione a tutti i client connessi
                 var command = this.objPos + '-off'
                 NAF.connection.broadcastDataGuaranteed('cube-commands', command);
                 this.updateColor();
             }
             else {
+                //vado ad attivare il cubo nel momento in cui questo è spento
                 arrayMusicale[this.objPos] = 1;
                 this.polysynth.triggerAttack(this.data.note);
 
-                //Invio messaggio attivazione
+                //Invio messaggio attivazione a tutti i client connessi
                 var command = this.objPos + '-on'
                 NAF.connection.broadcastDataGuaranteed('cube-commands', command);
                 this.updateColor();
 
             }
         },
+        /*  Eventi creati per evitare loop di messaggi, se una volta ricevuto il messaggio d'attivazione da un altro client, avessi chiamato il click, poi si  */
+        /*  sarebbe generato un ulteriore messaggio e questo avrebbe continuato a rimbalzare  */
         eventOn: function () {
             arrayMusicale[this.objPos] = 1;
-            //this.polysynth.triggerAttack(this.data.note, now, 1); //scambiare now con "+0" se qualcosa non dovesse andare
             this.polysynth.triggerAttack(this.data.note);
         },
         eventOff: function () {
             arrayMusicale[this.objPos] = 0;
-            //this.polysynth.triggerRelease(this.data.note, now);
             this.polysynth.triggerRelease(this.data.note);
         },
         changeSettings: function () {
+            /*  Quando chiamato va a sincronizzare le impostazioni con quelle salvate nella matrice delle impostazioni, questo perchè quando andiamo a clickare su  */
+            /*  uno degli elementi per andare a modificare i valori delle impostazioni, la modifica viene prima applicata alla matrice, poi viene chiamato questo evento  */
+            /*  per sincronizzare il tutto e poi viene inviato il messaggio agli altri client connessi, con le modifiche da effettuare  */
             this.polysynth.volume.value = cubeSettings[this.objPos][0];
             this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
             this.polysynth.set({
@@ -325,15 +336,16 @@ AFRAME.registerComponent("polysynth", {
                 }
             });
 
+
+            /*  Una volta effettuata la sincronizzazione vado a cambiare anche il testo che indica il valore nella GUI corrispondente al cubo  */
             var GUIs = document.querySelectorAll('[text-changer]');
-            for(var i = 0; i < GUIs.length; i++){
-                if(GUIs[i].getAttribute('text-changer').indexcube == this.objPos)
+            for (var i = 0; i < GUIs.length; i++) {
+                if (GUIs[i].getAttribute('text-changer').indexcube == this.objPos)
                     GUIs[i].dispatchEvent(updateComponent);
             }
-            //dispatch l'evento per il cambiamento del valore nel testo della GUI -- credo qua sia meglio
 
         }
-        //andranno cambiati quando finisco il cambiamento per la GUI 
+        //andranno cambiati quando finisco il cambiamento per la GUI, OUTDATED
         /*volumeChange: function () {
             this.polysynth.volume.value = cubeVolume;
         },
@@ -454,7 +466,7 @@ AFRAME.registerComponent("pannerosc", {
 
 /*  assegna correttamente le note ai blocchi musicali  */
 /*  externalDrop riceve le note da assegnare al cubo, quando questo viene creato all'esterno, se è vuoto vuol dire che la creazione avviene  */
-/*  in locale e poi dovo verrà inviata  */
+/*  in locale e poi dopo verrà inviata  */
 function notePopuling() {
     var toFill;
 
@@ -477,13 +489,14 @@ function notePopuling() {
     return toFill;
 }
 
+
+/*  Componente che gestisce la memorizzazione delle note nell'array che verrà usato per creare i cubi, si occupa di unire il valore dell'ottava con quello della nota  */
 AFRAME.registerComponent('note-mem', {
     schema: {
         addnota: { type: 'string', default: 'A' }
     },
     init: function () {
         this.nota = this.data.addnota + octave;
-        //console.log("Va");
     },
     events: {
         click: function () {
@@ -495,18 +508,17 @@ AFRAME.registerComponent('note-mem', {
         },
         changeOctave: function () {
             this.nota = this.data.addnota + octave;
-            //console.log(this.nota);
         }
     }
 });
 
+/*  Componente che va a cambiare il valore dell'ottava selezionata  */
 AFRAME.registerComponent('change-octave', {
     schema: {
         action: { type: 'string' },
     },
     init: function () {
         this.noteSelectors = document.querySelectorAll('[note-mem]');
-        //console.log(this.data.action);
     },
     events: {
         click: function () {
@@ -522,14 +534,14 @@ AFRAME.registerComponent('change-octave', {
             }
             for (var i = 0; i < this.noteSelectors.length; i++) {
                 this.noteSelectors[i].dispatchEvent(changeOctave);
-                //console.log(i);
             }
             document.getElementById("valoreottava").innerHTML = "Ottava selezionata: " + octave;
-            console.log("Octave: " + octave);
         }
     }
 });
 
+
+/*  Componente che gestiva il cambiamento del volume dei cubi, OUTDATED  */
 AFRAME.registerComponent('change-volume', {
     schema: {
         action: { type: 'string' }
@@ -561,6 +573,7 @@ AFRAME.registerComponent('change-volume', {
     }
 });
 
+/*  Componente che gestiva il cambiamento del detune dei cubi, OUTDATED  */
 AFRAME.registerComponent('change-detune', {
     schema: {
         action: { type: 'string' }
@@ -592,6 +605,7 @@ AFRAME.registerComponent('change-detune', {
     }
 });
 
+/*  Componente che gestiva il cambiamento dei valori dell'envelope dei cubi, OUTDATED  */
 AFRAME.registerComponent('change-envelope', {
     schema: {
         argument: { type: 'string' },
@@ -602,8 +616,6 @@ AFRAME.registerComponent('change-envelope', {
         click: function () {
 
             var cmd = '';
-
-
 
             switch (this.data.argument) {
                 case 'envelope-attack': {
@@ -699,6 +711,7 @@ AFRAME.registerComponent('change-envelope', {
     }
 });
 
+/*  Componente che va ad applicare le modifiche dei valori delle impostazioni, al testo sulle GUIs  */
 AFRAME.registerComponent('text-changer', {
     schema: {
         indexcube: { type: 'int' },
@@ -713,6 +726,7 @@ AFRAME.registerComponent('text-changer', {
                 this.data.indexcube = GUIs[i].getAttribute('indexgui').indice - 1;
         }*/
 
+        //Vado a prelevare il valore 'indexgui' del padre del padre dell'elemento in cui mi trovo (questo dovuto a come è strutturata la GUI), mi muovo nel DOM perchè mi è più semplice
         this.data.indexcube = this.el.parentNode.parentNode.getAttribute("indexgui").indice;
         this.el.setAttribute('value', cubeSettings[this.data.indexcube][this.data.settingindex]);
     },
@@ -723,6 +737,7 @@ AFRAME.registerComponent('text-changer', {
     }
 });
 
+/*  Componente che va a modificare i valori nella matrice delle impostazioni, una volta che l'entità a cui è attaccato, viene modificata  */
 AFRAME.registerComponent('setting-changer', {
     schema: {
         indexcube: { type: 'int' },
@@ -747,29 +762,29 @@ AFRAME.registerComponent('setting-changer', {
     },
     events: {
         click: function () {
-            //change the value in the array
+            //cambio il valore dell'array
             if (this.data.action == 'add') {
-                if (this.data.settingindex == 4) {//sustain operates on +-0.1 instead of +-0.5
+                if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
                     cubeSettings[this.data.indexcube][this.data.settingindex] += 0.1;
                     if (cubeSettings[this.data.indexcube][this.data.settingindex] > 1)
                         cubeSettings[this.data.indexcube][this.data.settingindex] = 1;
                 }
-                else{
+                else {
                     cubeSettings[this.data.indexcube][this.data.settingindex] += 0.5;
                 }
             }
-            else if(this.data.action == 'sub'){
-                if (this.data.settingindex == 4) {//sustain operates on +-0.1 instead of +-0.5
+            else if (this.data.action == 'sub') {
+                if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
                     cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.1;
                 }
-                else{
+                else {
                     cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.5;
                 }
-                if(cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && (this.data.settingindex != 0 && this.data.settingindex != 1))
+                if (cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && (this.data.settingindex != 0 && this.data.settingindex != 1)) //detune e volume possono andare sotto 0
                     cubeSettings[this.data.indexcube][this.data.settingindex] = 0;
             }
 
-            //deploy the event on the cube for it to change the value
+            //genero l'evento per la modifica dei valori sul cubo, che a sua volta andrà a generare l'evento che andrà a modificare il testo
             this.cube.dispatchEvent(changeSettings);
 
 
