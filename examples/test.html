@@ -239,25 +239,39 @@
         <a-entity gltf-model="#f-obj" scale="0.5 0.5 0.5" position="-2 1 -3" note-mem="addnota: F"></a-entity>
         <a-entity gltf-model="#g-obj" scale="0.5 0.5 0.5" position="0 1 -3" note-mem="addnota: G"></a-entity>
 
+        <!--  Array Infos  -->
+        <a-text position="-8 2.5 -3" color="#FFF" value="Octave Selected:"></a-text>
+        <a-text position="-6 2.5 -3" color="#FFF" value="4" id="valoreottava"></a-text>
+        <a-text position="-4 2.5 -3" color="#FFF" value="Array:"></a-text>
+        <a-text position="-3 2.5 -3" color="#FFF" value="" id="notebox"></a-text>
+
+
 
         <!--  Octave Changer  -->
+        <a-text position="2.3 2.5 -3" color="#FFF" value="Reduce Octave"></a-text>
         <a-entity material="color: red" geometry="primitive: box" position="3 1 -3" scale="1 0.5 1"
             change-octave="action: sub"></a-entity>
+        <a-text position="5.3 2.5 -3" color="#FFF" value="Increase Octave"></a-text>
         <a-entity obj-model="obj: #plus-obj" position="6 1 -3" rotation="90 0 0" scale="0.3 0.3 0.3"
             change-octave="action: add"></a-entity>
+
+        
+        <!--  Array Cleaner  -->
+        <a-text position="8.3 2.5 -3" color="#FFF" value="Clean Array"></a-text>
+        <a-entity material="color: orange" geometry="primitive: sphere" position="9 1 -3" clear-array></a-entity>
 
 
 
     </a-scene>
 
 
-    <!--  External GUI  -->
+    <!--  External GUI 
     <form style="position: absolute; top: 5px; border: 0; right: 5px;">
         <label id="valoreottava" style="color: white;">Ottava selezionata: 4</label>
         <br>
         <input id="notebox" autocomplete="off" disabled type="text"
             style="width: 200px; background: lightgray; color: black;">
-    </form>
+    </form> -->
 
 
 </body>

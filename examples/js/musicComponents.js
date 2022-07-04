@@ -86,8 +86,8 @@ AFRAME.registerComponent('intersection-spawn', {
                     document.body.dispatchEvent(new CustomEvent('persistentEntityCreated', { detail: { el: spawnEl } }));
                 });
 
-                document.getElementById("notebox").value = "";
-
+                //document.getElementById("notebox").value = "";
+                document.querySelector('#notebox').setAttribute('value', '');
 
                 //GUI creation
                 var gui = document.createElement('a-entity');
@@ -254,10 +254,10 @@ AFRAME.registerComponent("polysynth", {
         this.distortion.set({ distortion: cubeSettings[this.objPos][1] });
 
         //vado a salvare tutti i dati nella matrice delle impostazioni (1° posizione = indice del cubo, 2° posizione = indice dell'impostazione)
-        this.data.volume  = cubeSettings[this.objPos][0];
-        this.data.distortion  = cubeSettings[this.objPos][1];
-        this.data.attack  = cubeSettings[this.objPos][2];
-        this.data.decay   = cubeSettings[this.objPos][3];
+        this.data.volume = cubeSettings[this.objPos][0];
+        this.data.distortion = cubeSettings[this.objPos][1];
+        this.data.attack = cubeSettings[this.objPos][2];
+        this.data.decay = cubeSettings[this.objPos][3];
         this.data.sustain = cubeSettings[this.objPos][4];
         this.data.release = cubeSettings[this.objPos][5];
 
@@ -504,7 +504,8 @@ AFRAME.registerComponent('note-mem', {
         click: function () {
             if (!musicDrop.includes(this.nota)) {
                 musicDrop.push(this.nota);
-                document.getElementById("notebox").value = musicDrop;
+                //document.getElementById("notebox").value = musicDrop;
+                document.querySelector('#notebox').setAttribute('value', musicDrop);
             }
             console.log(musicDrop);
         },
@@ -537,7 +538,7 @@ AFRAME.registerComponent('change-octave', {
             for (var i = 0; i < this.noteSelectors.length; i++) {
                 this.noteSelectors[i].dispatchEvent(changeOctave);
             }
-            document.getElementById("valoreottava").innerHTML = "Ottava selezionata: " + octave;
+            document.querySelector("#valoreottava").setAttribute('value', octave);
         }
     }
 });
@@ -767,21 +768,21 @@ AFRAME.registerComponent('setting-changer', {
             //cambio il valore dell'array
             if (this.data.action == 'add') {
                 if (this.data.settingindex == 4 || this.data.settingindex == 1) {//sustain e distortion si modificano con +-0.1 invece che +-0.5
-                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.1)* 1e12)/1e12;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.1) * 1e12) / 1e12;
                     if (cubeSettings[this.data.indexcube][this.data.settingindex] > 1)
                         cubeSettings[this.data.indexcube][this.data.settingindex] = 1;
                 }
                 else {
-                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.5)* 1e12)/1e12;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.5) * 1e12) / 1e12;
 
                 }
             }
             else if (this.data.action == 'sub') {
                 if (this.data.settingindex == 4 || this.data.settingindex == 1) {//sustain si modifica con +-0.1 invece che +-0.5
-                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.1)* 1e12)/1e12;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.1) * 1e12) / 1e12;
                 }
                 else {
-                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.5)* 1e12)/1e12;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.5) * 1e12) / 1e12;
                 }
                 if (cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && this.data.settingindex != 0) //detune e volume possono andare sotto 0
                     cubeSettings[this.data.indexcube][this.data.settingindex] = 0;
@@ -796,6 +797,15 @@ AFRAME.registerComponent('setting-changer', {
             cmd += this.data.indexcube + ':' + this.data.settingindex + ':' + cubeSettings[this.data.indexcube][this.data.settingindex];
             NAF.connection.broadcastDataGuaranteed("update-settings", cmd);
 
+        }
+    }
+});
+
+AFRAME.registerComponent('clear-array', {
+    events: {
+        click: function () {
+            musicDrop = [];
+            document.querySelector('#notebox').setAttribute('value', musicDrop);
         }
     }
 });
