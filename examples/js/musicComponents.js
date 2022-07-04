@@ -39,10 +39,10 @@ externalDrop = [];
 /*  Indica l'ottava in cui si trovano i componenti da prendere, quindi se è 1, tutti i componenti hanno note in prima ottava etc  */
 octave = 4;
 
-/*  Volume del suono riprodotto dai cubi in dB  */
+/*  Volume del suono riprodotto dai cubi in dB, OUTDATED  */
 cubeVolume = -12;
 
-/*  detune applicato al suono riprodotto dai cubi  */
+/*  detune applicato al suono riprodotto dai cubi, OUTDATED  */
 cubeDetune = 0;
 
 cubeEnvelopeAttack = 3;
@@ -50,7 +50,7 @@ cubeEnvelopeDecay = 2;
 cubeEnvelopeRelease = 0.5;
 cubeEnvelopeSustain = 0.5;
 
-//defaultCubeSettings = [-12, 0, 3, 2, 0.5, 0.5]; usando il push poi va a modificare l'oggetto quindi rimane lo stesso per tutti
+//defaultCubeSettings = [0, 0, 3, 2, 0.5, 0.5]; usando il push poi va a modificare l'oggetto quindi rimane lo stesso per tutti
 
 //OUTDATED, usato per i gli oggetti statici
 riproducisynth = 0;
@@ -123,7 +123,7 @@ AFRAME.registerComponent('indexgui', {
         indice: { type: 'int' },
     },
     init: function () {
-        this.data.indice = index - 1; //-1 perchè creandolo dopo il cubo l'index viene incrementato, se funziona tutto poi sposto la creazione sopra e siamo apposto
+        this.data.indice = index - 1; //-1 perchè creandolo dopo il cubo l'index viene incrementato
     }
 });
 
@@ -222,20 +222,21 @@ AFRAME.registerComponent("polysynth", {
 
         //cubeSettings[this.objPos] = defaultCubeSettings;
         //cubeSettings.push(defaultCubeSettings); //questo non va bene perchè mette lo stesso oggetto, quindi quando ne cambio uno, cambiano tutti
-        cubeSettings[this.objPos] = [-12, 0, 3, 2, 0.5, 0.5];
+        cubeSettings[this.objPos] = [0, 0, 3, 2, 0.5, 0.5];
 
         var distortion = new Tone.Distortion(0);    //amount of distortion, between 0-1
-        this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z).toDestination();
-        /*this.polysynth = new Tone.PolySynth().set({
+        /*this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z).toDestination();
+        this.polysynth = new Tone.PolySynth().set({
             envelope: {
                 attackCurve: "exponential",
-                attack: cubeEnvelopeAttack,
-                decay: cubeEnvelopeDecay,
-                sustain: cubeEnvelopeSustain,
-                release: cubeEnvelopeRelease,
+                attack: cubeSettings[this.objPos][2],
+                decay: cubeSettings[this.objPos][3],
+                sustain: cubeSettings[this.objPos][4],
+                release: cubeSettings[this.objPos][5],
             }
         }).connect(this.pannerpolysynth);*/
 
+        this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z); //non sono sicuro funzioni correttamente tbh
         this.polysynth = new Tone.PolySynth().set({
             envelope: {
                 attackCurve: "exponential",
@@ -246,7 +247,7 @@ AFRAME.registerComponent("polysynth", {
             }
         });
 
-        this.polysynth.chain(distortion, this.pannerpolysynth);
+        this.polysynth.chain(distortion, this.pannerpolysynth, Tone.Destination);
 
         // Imposta il volume iniziale del suono riprodotto e il valore del detune
         this.polysynth.volume.value = cubeSettings[this.objPos][0];
@@ -272,10 +273,10 @@ AFRAME.registerComponent("polysynth", {
     },
     updateColor() {
         //cambia il colore del cubo a seconda e è accesso o meno, non è sincronizzato direttamente, ma non dovrebbe succedere che siano desincronizzati
-        if (this.el.getAttribute('material').color == "red")
-            this.el.setAttribute('material', 'color', "blue")
+        if (this.el.getAttribute('material').color == "#DC3220")
+            this.el.setAttribute('material', 'color', "#005AB5")
         else
-            this.el.setAttribute('material', 'color', "red")
+            this.el.setAttribute('material', 'color', "#DC3220")
 
     },
     events: {
@@ -765,24 +766,26 @@ AFRAME.registerComponent('setting-changer', {
             //cambio il valore dell'array
             if (this.data.action == 'add') {
                 if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
-                    cubeSettings[this.data.indexcube][this.data.settingindex] += 0.1;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.1)* 1e12)/1e12;
                     if (cubeSettings[this.data.indexcube][this.data.settingindex] > 1)
                         cubeSettings[this.data.indexcube][this.data.settingindex] = 1;
                 }
                 else {
-                    cubeSettings[this.data.indexcube][this.data.settingindex] += 0.5;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.5)* 1e12)/1e12;
+
                 }
             }
             else if (this.data.action == 'sub') {
                 if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
-                    cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.1;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.1)* 1e12)/1e12;
                 }
                 else {
-                    cubeSettings[this.data.indexcube][this.data.settingindex] -= 0.5;
+                    cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.5)* 1e12)/1e12;
                 }
                 if (cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && (this.data.settingindex != 0 && this.data.settingindex != 1)) //detune e volume possono andare sotto 0
                     cubeSettings[this.data.indexcube][this.data.settingindex] = 0;
             }
+
 
             //genero l'evento per la modifica dei valori sul cubo, che a sua volta andrà a generare l'evento che andrà a modificare il testo
             this.cube.dispatchEvent(changeSettings);
