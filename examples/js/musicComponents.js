@@ -206,7 +206,7 @@ AFRAME.registerComponent("polysynth", {
     schema: {
         note: { type: 'string' },
         volume: { type: 'number' },
-        detune: { type: 'number' },
+        distortion: { type: 'number' },
         attack: { type: 'number' },
         decay: { type: 'number' },
         sustain: { type: 'number' },
@@ -224,7 +224,6 @@ AFRAME.registerComponent("polysynth", {
         //cubeSettings.push(defaultCubeSettings); //questo non va bene perchè mette lo stesso oggetto, quindi quando ne cambio uno, cambiano tutti
         cubeSettings[this.objPos] = [0, 0, 3, 2, 0.5, 0.5];
 
-        var distortion = new Tone.Distortion(0);    //amount of distortion, between 0-1
         /*this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z).toDestination();
         this.polysynth = new Tone.PolySynth().set({
             envelope: {
@@ -247,15 +246,16 @@ AFRAME.registerComponent("polysynth", {
             }
         });
 
-        this.polysynth.chain(distortion, this.pannerpolysynth, Tone.Destination);
+        this.distortion = new Tone.Distortion(0);    //amount of distortion, between 0-1
+        this.polysynth.chain(this.distortion, this.pannerpolysynth, Tone.Destination);
 
         // Imposta il volume iniziale del suono riprodotto e il valore del detune
         this.polysynth.volume.value = cubeSettings[this.objPos][0];
-        this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
+        this.distortion.set({ distortion: cubeSettings[this.objPos][1] });
 
         //vado a salvare tutti i dati nella matrice delle impostazioni (1° posizione = indice del cubo, 2° posizione = indice dell'impostazione)
         this.data.volume  = cubeSettings[this.objPos][0];
-        this.data.detune  = cubeSettings[this.objPos][1];
+        this.data.distortion  = cubeSettings[this.objPos][1];
         this.data.attack  = cubeSettings[this.objPos][2];
         this.data.decay   = cubeSettings[this.objPos][3];
         this.data.sustain = cubeSettings[this.objPos][4];
@@ -326,7 +326,8 @@ AFRAME.registerComponent("polysynth", {
             /*  uno degli elementi per andare a modificare i valori delle impostazioni, la modifica viene prima applicata alla matrice, poi viene chiamato questo evento  */
             /*  per sincronizzare il tutto e poi viene inviato il messaggio agli altri client connessi, con le modifiche da effettuare  */
             this.polysynth.volume.value = cubeSettings[this.objPos][0];
-            this.polysynth.set({ detune: cubeSettings[this.objPos][1] });
+            this.distortion.set({ distortion: cubeSettings[this.objPos][1] });
+            console.log(this.distortion.get());
             this.polysynth.set({
                 envelope: {
                     attackCurve: "exponential",
@@ -765,7 +766,7 @@ AFRAME.registerComponent('setting-changer', {
         click: function () {
             //cambio il valore dell'array
             if (this.data.action == 'add') {
-                if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
+                if (this.data.settingindex == 4 || this.data.settingindex == 1) {//sustain e distortion si modificano con +-0.1 invece che +-0.5
                     cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] + 0.1)* 1e12)/1e12;
                     if (cubeSettings[this.data.indexcube][this.data.settingindex] > 1)
                         cubeSettings[this.data.indexcube][this.data.settingindex] = 1;
@@ -776,13 +777,13 @@ AFRAME.registerComponent('setting-changer', {
                 }
             }
             else if (this.data.action == 'sub') {
-                if (this.data.settingindex == 4) {//sustain si modifica con +-0.1 invece che +-0.5
+                if (this.data.settingindex == 4 || this.data.settingindex == 1) {//sustain si modifica con +-0.1 invece che +-0.5
                     cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.1)* 1e12)/1e12;
                 }
                 else {
                     cubeSettings[this.data.indexcube][this.data.settingindex] = Math.round((cubeSettings[this.data.indexcube][this.data.settingindex] - 0.5)* 1e12)/1e12;
                 }
-                if (cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && (this.data.settingindex != 0 && this.data.settingindex != 1)) //detune e volume possono andare sotto 0
+                if (cubeSettings[this.data.indexcube][this.data.settingindex] < 0 && this.data.settingindex != 0) //detune e volume possono andare sotto 0
                     cubeSettings[this.data.indexcube][this.data.settingindex] = 0;
             }
 
