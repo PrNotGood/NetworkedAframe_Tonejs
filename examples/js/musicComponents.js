@@ -18,7 +18,7 @@ start = 0;
 /*  On connect manderò l'array intero mentre per i singoli cambiamenti solo il contenuto della suddetta cella preceduto dalla posizione nell'array  */
 /*  Composizione Array:  */
 /*  Posizione 0 Volume  */
-/*  Posizione 1 Detune (forse lo cambio con qualcos'altro)  */
+/*  Posizione 1 Distortion  */
 /*  Posizione 2 Envelope Attack  */
 /*  Posizione 3 Envelope Decay  */
 /*  Posizione 4 Envelope Sustain  */
@@ -235,7 +235,7 @@ AFRAME.registerComponent("polysynth", {
             }
         }).connect(this.pannerpolysynth);*/
 
-        this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z); //non sono sicuro funzioni correttamente tbh
+        this.pannerpolysynth = new Tone.Panner3D(this.physicalObj.position.x, this.physicalObj.position.y, this.physicalObj.position.z);
         this.polysynth = new Tone.PolySynth().set({
             envelope: {
                 attackCurve: "exponential",
@@ -277,7 +277,6 @@ AFRAME.registerComponent("polysynth", {
             this.el.setAttribute('material', 'color', "#005AB5")
         else
             this.el.setAttribute('material', 'color', "#DC3220")
-
     },
     events: {
         click: function (evt) {
