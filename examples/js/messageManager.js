@@ -52,10 +52,12 @@ function onConnect() {
     NAF.connection.subscribeToDataChannel("onconnect-setting", setSettings);
     NAF.connection.subscribeToDataChannel("cube-commands", cubeManager);
     NAF.connection.subscribeToDataChannel("note-received", noteSet);
-    NAF.connection.subscribeToDataChannel("update-settings", updateSettings)
+    NAF.connection.subscribeToDataChannel("update-settings", updateSettings);
+    NAF.connection.subscribeToDataChannel("msg-delay", calculateDelay);
 
 
-    NAF.connection.broadcastDataGuaranteed("initializedData", NAF.clientId)
+
+    NAF.connection.broadcastDataGuaranteed("initializedData", NAF.clientId);
 
 
     //turns out che questa roba fa cagare, perchè l'evento viene generato anche sui clients che si stanno attaccando, 
@@ -323,4 +325,12 @@ function updateSettings(senderId, dataType, data, targetObj) {
     cubeSettings[cmd[0]][cmd[1]] = cmd[2];
 
     cube.dispatchEvent(changeSettings);
+}
+
+function calculateDelay(senderId, dataType, data, targetObj){
+    var event = data.split(':')[0];
+    var generatedTime = data.split(':')[1];
+    var timeDelay = new Date().getTime() - generatedTime;
+
+    console.log('Evento: ' + event + ', Time delay: '  + timeDelay + ' ms');
 }

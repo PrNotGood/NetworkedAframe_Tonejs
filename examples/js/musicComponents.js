@@ -74,6 +74,8 @@ AFRAME.registerComponent('intersection-spawn', {
                 // Invia in broadcast le note che vanno nel polysynth agli altri utenti connessi
                 NAF.connection.broadcastDataGuaranteed('note-received', musicDrop);
 
+
+
                 //Cube creation
                 var spawnEl = document.createElement('a-entity');
                 var correctPosition = evt.detail.intersection.point;
@@ -85,6 +87,12 @@ AFRAME.registerComponent('intersection-spawn', {
                 NAF.utils.getNetworkedEntity(spawnEl).then((networkedEl) => {
                     document.body.dispatchEvent(new CustomEvent('persistentEntityCreated', { detail: { el: spawnEl } }));
                 });
+
+                /*var creationTime = new Date().getTime();
+                var nomeEvento = 'CreazioneCubo'
+                NAF.connection.broadcastDataGuaranteed("msg-delay", nomeEvento + ':' + creationTime);*/
+                sendTimeStamp('CreazioneCubo');
+
 
                 //document.getElementById("notebox").value = "";
                 document.querySelector('#notebox').setAttribute('value', '');
@@ -266,6 +274,7 @@ AFRAME.registerComponent("polysynth", {
         //this.myGUI = document.getElementById(this.objPos); non credo sia utile, controllare se succedono danni è per colpa di questo testo commentato
 
 
+
     },
     tick: function () {
         //serve per tenere la posizione corretta, altrimenti viene costantemente portato a 0,0,0
@@ -282,6 +291,9 @@ AFRAME.registerComponent("polysynth", {
         click: function (evt) {
             //serve per far si che le modifiche fatte al cubo siano condivise per tutti (in questo caso agisce solo sul colore)
             NAF.utils.takeOwnership(this.el);
+
+            sendTimeStamp('AttivazioneCubo');
+
 
             //Best pratice di Tone.js, prima di far partire qualunque suono viene consigliato di chiamare Tone.start();
             if (!start) {
@@ -808,3 +820,9 @@ AFRAME.registerComponent('clear-array', {
         }
     }
 });
+
+
+function sendTimeStamp(nomeEvento){
+    var creationTime = new Date().getTime();
+    NAF.connection.broadcastDataGuaranteed("msg-delay", nomeEvento + ':' + creationTime);
+}
