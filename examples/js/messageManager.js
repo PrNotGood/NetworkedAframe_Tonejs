@@ -330,7 +330,9 @@ function updateSettings(senderId, dataType, data, targetObj) {
 function calculateDelay(senderId, dataType, data, targetObj){
     var event = data.split(':')[0];
     var generatedTime = data.split(':')[1];
-    var timeDelay = new Date().getTime() - generatedTime;
+    var receivedTime = new Date().getTime();
+    var timeDelay = receivedTime - generatedTime;
 
-    console.log('Evento: ' + event + ', Time delay: '  + timeDelay + ' ms');
+    console.log('Evento: ' + event);
+    console.log('Tempo di partenza: ' + generatedTime + ', Tempo di ricezione: ' + receivedTime + ', Time delay: '  + timeDelay + ' ms');
 }
