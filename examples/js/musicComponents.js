@@ -338,7 +338,6 @@ AFRAME.registerComponent("polysynth", {
             /*  per sincronizzare il tutto e poi viene inviato il messaggio agli altri client connessi, con le modifiche da effettuare  */
             this.polysynth.volume.value = cubeSettings[this.objPos][0];
             this.distortion.set({ distortion: cubeSettings[this.objPos][1] });
-            console.log(this.distortion.get());
             this.polysynth.set({
                 envelope: {
                     attackCurve: "exponential",
@@ -496,7 +495,6 @@ function notePopuling() {
         musicDrop = [];
     }
     else {
-        console.log("Default A1");
         toFill = ["A1"];
     }
     return toFill;

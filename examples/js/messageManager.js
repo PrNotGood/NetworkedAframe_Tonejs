@@ -159,6 +159,7 @@ function createArray(senderId, dataType, data, targetObj) {
     //es arrayNote [["D1","C2"],["B2","C3"], null,
 
     var cubes = document.querySelectorAll('[polysynth]');
+    console.log(cubes);
     for (var i = 0; i < data.length; i++) {
         var index = cubes[i].getAttribute('index').indice;
 
@@ -333,6 +334,7 @@ function calculateDelay(senderId, dataType, data, targetObj){
     var receivedTime = new Date().getTime();
     var timeDelay = receivedTime - generatedTime;
 
+    console.log(generatedTime);
     console.log('Evento: ' + event);
-    console.log('Tempo di partenza: ' + generatedTime + ', Tempo di ricezione: ' + receivedTime + ', Time delay: '  + timeDelay + ' ms');
+    console.log('Tempo di partenza: ' + new Date(parseInt(generatedTime)).toString() + ', Tempo di ricezione: ' + new Date(receivedTime).toString() + ', Time delay: '  + timeDelay + ' ms');
 }
