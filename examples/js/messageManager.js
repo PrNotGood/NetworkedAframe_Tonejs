@@ -334,7 +334,8 @@ function calculateDelay(senderId, dataType, data, targetObj){
     var receivedTime = new Date().getTime();
     var timeDelay = receivedTime - generatedTime;
 
-    console.log(generatedTime);
+
+
     console.log('Evento: ' + event);
     console.log('Tempo di partenza: ' + new Date(parseInt(generatedTime)).toString() + ', Tempo di ricezione: ' + new Date(receivedTime).toString() + ', Time delay: '  + timeDelay + ' ms');
 }
